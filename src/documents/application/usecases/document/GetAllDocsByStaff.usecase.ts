@@ -4,7 +4,7 @@ class GetAllDocumentsByStaffUseCase {
     constructor(private readonly documentsRepo: DocumentRepositoryPort){}
 
     async execute(staffId:string) {
-        const allDocsByStaff = await this.documentsRepo.fetchDocumentsAuthoredByStaff(staffId);
+        const allDocsByStaff = await this.documentsRepo.fetchDocumentsByStaff(staffId);
 
         return allDocsByStaff;
     }

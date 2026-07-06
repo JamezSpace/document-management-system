@@ -14,7 +14,7 @@ class DocumentIdentityAdapter implements DocumentIdentityPort {
 	): Promise<{ id: string; title: string }> {
         try {
 			const query = `
-				SELECT d.id, title
+				SELECT id, title
 				FROM identity.unit_head_designation
 				WHERE unit_id = $1
 				LIMIT 1;
@@ -36,6 +36,36 @@ class DocumentIdentityAdapter implements DocumentIdentityPort {
 			return {
                 id: result.rows[0].id,
 				title: result.rows[0].title
+			};
+		} catch (error: any) {
+			if (error instanceof InfrastructureError) throw error;
+
+			const postgresError = mapPostgresError(error);
+
+			throw new InfrastructureError(postgresError.summary, {
+				category: Category.PERSISTENCE,
+				message: postgresError.details?.message ?? error.message,
+				table: postgresError.details?.table,
+				column: postgresError.details?.column,
+			});
+		}
+    }
+
+    async getStaffByUid(uid: string): Promise<{ id: string } | null> {
+        try {
+			const query = `
+				SELECT id 
+				FROM identity.staff_details
+				WHERE auth_provider_id = $1
+				LIMIT 1;
+			`;
+
+			const result = await this.dbPool.query(query, [uid]);
+
+			if (!result.rows || result.rows.length === 0) return null
+
+			return {
+                id: result.rows[0].id,
 			};
 		} catch (error: any) {
 			if (error instanceof InfrastructureError) throw error;

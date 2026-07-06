@@ -23,8 +23,9 @@ import InMemoryEventBusAdapter from "./shared/infrastructure/InMemoryEventBus.js
 import { dbConfig } from "./shared/infrastructure/persistence/primary/postgres.config.js";
 import WorkflowSubsystem from "./workflow/index.js";
 import DispatchStaffAdapter from "./i & a/identity/infrastructure/persistence/entities/staff/DispatchStaffRepo.adapter.js";
-import DispatchDocumentAdapter from "./documents/infrastructure/persistence/PostgresDispatchDocumentRepo.adapter.js";
+import DispatchDocumentAdapter from "./documents/infrastructure/persistence/DispatchDocumentRepository.adapter.js";
 import DocumentIdentityAdapter from "./i & a/identity/infrastructure/persistence/DocumentIdentity.adapter.js";
+import OrchestrationSubsystem from "./orchestration/workspace/index.js";
 
 const server: FastifyInstance = fastify({
 	logger: true,
@@ -72,6 +73,11 @@ server.after(() => {
 		retentionService,
 		globalEventBus: eventBusAdapter,
 	});
+
+    // orchestration layer
+    server.register(OrchestrationSubsystem, {
+        prefix: "api/"
+    })
 
 	server.register(PolicySubsystem, { prefix: "api/policy" });
 

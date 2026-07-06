@@ -116,29 +116,6 @@ class DocumentEventsAdapter implements DocumentEventsPort {
 		});
 	}
 
-	async documentApproved(payload: {
-		documentId: string;
-		approvedBy: string;
-	}): Promise<void> {
-		await this.eventBus.emit({
-			eventName: GlobalEventTypes.document.document.DOCUMENT_APPROVED,
-			occurredAt: new Date(),
-			payload,
-		});
-	}
-
-	async documentRejected(payload: {
-		documentId: string;
-		rejectedBy: string;
-		reason: string;
-	}): Promise<void> {
-		await this.eventBus.emit({
-			eventName: GlobalEventTypes.document.document.DOCUMENT_REJECTED,
-			occurredAt: new Date(),
-			payload,
-		});
-	}
-
 	async documentArchived(payload: {
 		documentId: string;
 		archivedBy: string;

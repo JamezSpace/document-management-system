@@ -59,6 +59,10 @@ class WorkflowEngine {
 			(task) => task.getStatus() === WorkflowTaskStatus.APPROVED,
 		);
 	}
+
+	isTerminalStep(workflowStepsNumber: number, currentStep: number): boolean {
+		return currentStep === workflowStepsNumber;
+	}
 }
 
 export default WorkflowEngine;

@@ -8,9 +8,9 @@ class DispatchDocument extends Document {
 
 		if (!currentVersion) return false;
 
-		// approved state for external docs and active state for internal docs
+		// in_review state for external docs and active state for internal docs
 		return (
-			currentVersion.getState() === LifecycleState.APPROVED ||
+			currentVersion.getState() === LifecycleState.IN_REVIEW ||
 			currentVersion.getState() === LifecycleState.ACTIVE
 		);
 	}

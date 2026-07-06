@@ -8,7 +8,7 @@ class RejectTaskUseCase {
 		private readonly workflowRepository: WorkflowRepositoryPort
 	) {}
 
-	async execute(taskId: string, actorId: string, minuteId?: string | null) {
+	async execute(taskId: string, actorId: string, minuteId: string) {
 		// fetch task
 		const task = await this.workflowRepository.getTaskById(taskId);
 

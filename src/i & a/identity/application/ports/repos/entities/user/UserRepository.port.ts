@@ -6,14 +6,7 @@ import Identity from "../../../../../domain/entities/user/Identity.js";
  *
  * All actual repositories (database layer) must implement this interface.
  */
-interface UserRepositoryPort {
-	findByCredentials(
-		email: string,
-		password: string,
-	): Promise<Identity | null>;
-
-	findIdentityByUid(uid: string): Promise<Identity | null>;
-
+interface IdentityRepositoryPort {
 	findIdentityByAuthProviderId(authProviderId: string): Promise<Identity | null>
 
 	findAllUsers(): Promise<Identity[]>;
@@ -26,5 +19,5 @@ interface UserRepositoryPort {
     updateIdentityStatus(uid: string, status: string): Promise<Identity>;
 }
 
-export type { UserRepositoryPort };
+export type { IdentityRepositoryPort };
 

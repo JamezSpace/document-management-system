@@ -4,9 +4,7 @@ import type Document from "../../../domain/entities/document/Document.js";
 interface DocumentRepositoryPort {
     save(document: Document, tx?: TransactionContext): Promise<Document>;
 
-    fetchDocumentsAuthoredByStaff(staffId: string): Promise<Document[]>;
-
-    fetchInboxDocumentsForStaff(staffId: string): Promise<Document[]>;
+    fetchDocumentsByStaff(staffId: string): Promise<Document[]>;
 
     findDocumentById(id: string): Promise<Document | null>;
 

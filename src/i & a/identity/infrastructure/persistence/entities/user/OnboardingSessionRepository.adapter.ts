@@ -6,7 +6,7 @@ import type { OnboardingSessionRepositoryPort } from "../../../../application/po
 import OnboardingSession from "../../../../domain/entities/user/OnboardingSession.js";
 import OnboardingSessionView from "../../../../domain/views/invites/OnboardingSessionView.js";
 
-class qlOnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryPort {
+class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryPort {
     constructor(private readonly dbPool: PostgresDb) {}
 
 	private toSession(row: any): OnboardingSession {
@@ -296,4 +296,4 @@ class qlOnboardingSessionRepositoryAdapter implements OnboardingSessionRepositor
 	}
 }
 
-export default qlOnboardingSessionRepositoryAdapter;
+export default OnboardingSessionRepositoryAdapter;

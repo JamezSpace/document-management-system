@@ -19,7 +19,7 @@ class WorkflowController {
         return this.approveTaskUseCase.execute(taskId, actorId, minuteId);
     }
 
-    async rejectTask(taskId: string, actorId: string, minuteId?: string | null) {
+    async rejectTask(taskId: string, actorId: string, minuteId: string) {
         return this.rejectTaskUseCase.execute(taskId, actorId, minuteId);
     }
 }

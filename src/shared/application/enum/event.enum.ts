@@ -40,8 +40,6 @@ enum DocumentEvents {
 	DOCUMENT_VERSION_CREATED = "document_version_created",
 	DOCUMENT_VERSION_CHANGED = "document_version_changed",
 	DOCUMENT_SUBMITTED = "document_submitted",
-	DOCUMENT_APPROVED = "document_approved",
-	DOCUMENT_REJECTED = "document_rejected",
 	DOCUMENT_ARCHIVED = "document_archived",
 	DOCUMENT_CANCELLED = "document_cancelled",
 	DOCUMENT_ACTIVATED = "document_activated",

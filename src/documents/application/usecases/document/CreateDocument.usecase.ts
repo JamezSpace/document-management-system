@@ -206,7 +206,7 @@ class DocumentCreationUseCase {
 		return {
 			...result.savedDoc,
 			currentVersion: result.savedVersionedDoc,
-			addressee: result.savedDocAddressees,
+			addressees: result.savedDocAddressees,
 		};
 	}
 }

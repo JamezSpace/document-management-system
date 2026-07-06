@@ -85,6 +85,10 @@ export const WorkflowDomainErrors = {
     UNAUTHORISED_APPROVAL: {
         codeName: "unauthorised_approval",
         httpStatusCode: StatusCodes.UNAUTHORIZED
+    },
+    REJECTION_MINUTE_REQUIRED: {
+        codeName: "rejection_minute_required",
+        httpStatusCode: StatusCodes.UNAUTHORIZED
     }
 } as const;
 

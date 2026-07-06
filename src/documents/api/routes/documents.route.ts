@@ -14,17 +14,20 @@ import {
     type DocumentSchemaType,
     type DocumentSchemaTypeForCreation,
 } from "../types/document.type.js";
+import type { DocumentIdentityPort } from "../../../shared/application/port/intersubsystem/DocumentIdentity.port.js";
 
 async function documentRoutes(
 	fastify: FastifyInstance,
 	options: {
 		controller: DocumentController;
+        documentIdentity: DocumentIdentityPort;
 	},
 ) {
 	const documentController = options.controller;
+	const documentIdentity = options.documentIdentity;
 
     // create a new document
-	    fastify.post(
+    fastify.post(
 		"/",
 		{ schema: { body: documentSchemaForCreation } },
 		async (
@@ -60,6 +63,20 @@ async function documentRoutes(
 					message: "No uid extracted from access token",
 				});
 
+            // ensuring row-level security
+            const authenticatedStaff = await documentIdentity.getStaffByUid(uid);
+
+            if(!authenticatedStaff)
+                throw new ApiError(ApiErrorEnum.NOT_FOUND, {
+                    message: 'Staff does not exist!'
+                })
+            
+            if(authenticatedStaff.id !== staffId)
+                throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
+                    message: "Forbidden Access"
+                })
+            
+
 			// fetch documents by staff
 			const docsByStaff =
 				await documentController.fetchAllDocsByStaff(staffId);
@@ -67,34 +84,6 @@ async function documentRoutes(
 			return reply.code(200).send({
 				success: true,
 				data: docsByStaff,
-			});
-		},
-	);
-
-	// fetch all docs addressed to staff
-	fastify.get(
-		"/documents/shared/:staffId",
-		{ schema: { params: docStaffIdSchema } },
-		async (
-			request: FastifyRequest<{ Params: DocStaffIdSchemaType }>,
-			reply: FastifyReply,
-		) => {
-			const { uid } = request.user!;
-			const { staffId } = request.params;
-
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-
-			// fetch addressed to staff
-			const docsAddressedToStaff =
-				await documentController.fetchAllDocsAddressedToStaff(staffId);
-
-			return reply.code(200).send({
-				success: true,
-				data: docsAddressedToStaff,
 			});
 		},
 	);

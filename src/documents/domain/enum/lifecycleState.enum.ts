@@ -6,7 +6,6 @@
 enum LifecycleState {
   DRAFT = "draft",
   IN_REVIEW = "in_review",
-  APPROVED = "approved",
   ACTIVE = "active",
   DECLARED_RECORD = "declared_record",
   ARCHIVED = "archived",

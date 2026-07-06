@@ -6,11 +6,11 @@ import {
 } from "../../../../../../shared/errors/enum/infrastructure.enum.js";
 import { mapPostgresError } from "../../../../../../shared/infrastructure/persistence/primary/helpers/mapPostgresError.helper.js";
 import type { TransactionContext } from "../../../../../../shared/infrastructure/persistence/primary/postgres.js";
-import type { UserRepositoryPort } from "../../../../application/ports/repos/entities/user/UserRepository.port.js";
+import type { IdentityRepositoryPort } from "../../../../application/ports/repos/entities/user/UserRepository.port.js";
 import Identity from "../../../../domain/entities/user/Identity.js";
 import { IdentityStatus } from "../../../../domain/entities/user/IdentityStatus.js";
 
-class qlIdentityRepositoryAdapter implements UserRepositoryPort {
+class IdentityRepositoryAdapter implements IdentityRepositoryPort {
 	constructor(private readonly dbPool: PostgresDb) {}
 
     // helper function to rehydrate to Identity object
@@ -90,8 +90,6 @@ class qlIdentityRepositoryAdapter implements UserRepositoryPort {
 				message: err.details?.message ?? error.message,
 				table: err.details?.table,
 			});
-
-			return null;
 		}
 	}
 
@@ -153,17 +151,6 @@ class qlIdentityRepositoryAdapter implements UserRepositoryPort {
 			});
 		}
 	}
-
-	async findByCredentials(
-		email: string,
-		password: string,
-	): Promise<Identity | null> {
-		return null;
-	}
-
-	async findIdentityByUid(uid: string): Promise<Identity | null> {
-		return null;
-	}
 }
 
-export default qlIdentityRepositoryAdapter;
+export default IdentityRepositoryAdapter;

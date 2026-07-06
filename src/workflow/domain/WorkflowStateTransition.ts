@@ -1,6 +1,6 @@
 import DomainError from "../../shared/errors/DomainError.error.js";
 import { GlobalDomainErrors } from "../../shared/errors/enum/domain.enum.js";
-import WorkflowState from "./WorkflowState.js";
+import WorkflowState from "./enum/WorkflowState.enum.js";
 
 /**
  * This class contains methods that states business rules for a workflow instance. This enforces state transition rules highlighted in the "state machine". Refer to the "state machine" for more info.

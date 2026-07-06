@@ -3,8 +3,10 @@ import type { TransactionContext } from "../../../infrastructure/persistence/pri
 interface DocumentIdentityPort {
 	resolveUnitHeadDesignation(
 		recipientUnitId: string,
-        tx?: TransactionContext
+		tx?: TransactionContext,
 	): Promise<{ id: string; title: string }>;
+
+	getStaffByUid(uid: string): Promise<{ id: string } | null>;
 }
 
 export type { DocumentIdentityPort };

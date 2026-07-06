@@ -67,10 +67,10 @@ import StaffClassificationRepositoryAdapter from "./identity/infrastructure/pers
 import StaffMediaRepositoryAdapter from "./identity/infrastructure/persistence/entities/staff/StaffMediaRepository.adapter.js";
 import StaffRepositoryAdapter from "./identity/infrastructure/persistence/entities/staff/StaffRepositoryAdapter.adapter.js";
 import OrgUnitRepositoryAdapter from "./identity/infrastructure/persistence/entities/unit/OrgUnitRepository.adapter.js";
-import qlIdentityRepositoryAdapter from "./identity/infrastructure/persistence/entities/user/IdentityRepository.adapter.js";
-import qlOnboardingSessionRepositoryAdapter from "./identity/infrastructure/persistence/entities/user/OnboardingSessionRepository.adapter.js";
+import IdentityRepositoryAdapter from "./identity/infrastructure/persistence/entities/user/IdentityRepository.adapter.js";
+import OnboardingSessionRepositoryAdapter from "./identity/infrastructure/persistence/entities/user/OnboardingSessionRepository.adapter.js";
 import InviteRepositoryAdapter from "./identity/infrastructure/persistence/entities/user/InviteRepository.adapter.js";
-import qlCapRoleRepositoryAdapter from "./identity/infrastructure/persistence/mappings/CapRoleRepository.adapter.js";
+import CapRoleRepositoryAdapter from "./identity/infrastructure/persistence/mappings/CapRoleRepository.adapter.js";
 import DesigCapClassRepositoryAdapter from "./identity/infrastructure/persistence/mappings/DesigCapClassRepository.adapter.js";
 import OfficeDesignationRepositoryAdapter from "./identity/infrastructure/persistence/mappings/OfficeDesignationRepository.adapter.js";
 import FirebaseAuthAdapter from "./identity/infrastructure/services/auth/FirebaseAuth.adapter.js";
@@ -81,22 +81,21 @@ import RoleServiceAdapter from "./identity/infrastructure/services/RoleService.a
 
 
 export default async function IdentityAccessSubsystem(
-	fastify: FastifyInstance,
+	fastify: FastifyInstance
 ) {
 	// infrastructure Layer
 	const postgres = fastify.pg;
 
 	const globalEventBus = new InMemoryEventBusAdapter();
-	const globalNodemailerEmailService = new NodemailerEmailServiceAdapter();
 	const globalResendEmailService = new ResendEmailServiceAdapter();
 	const idGenerator = new UuidV7Generator();
 	const transactionManager = new TransactionManager(postgres);
 	const mediaService = new CloudinaryMediaServiceAdapter();
 
 	// all module repos in identity subsystem
-	const identityRepository = new qlIdentityRepositoryAdapter(postgres);
+	const identityRepository = new IdentityRepositoryAdapter(postgres);
 	const inviteRepository = new InviteRepositoryAdapter(postgres);
-    const onboardingSessionRepo = new qlOnboardingSessionRepositoryAdapter(postgres);
+    const onboardingSessionRepo = new OnboardingSessionRepositoryAdapter(postgres);
 	const orgUnitRepository = new OrgUnitRepositoryAdapter(postgres);
 	const roleRepository = new RoleRepositoryAdapter(postgres);
 	const roleAssignmentsRepository = new RoleAssignmentRepositoryAdapter(postgres);
@@ -114,7 +113,7 @@ export default async function IdentityAccessSubsystem(
 	const staffCapabilityClassRepository =
 		new StaffCapabilityClassRepositoryAdapter(postgres);
     const desigCapClassRepository = new DesigCapClassRepositoryAdapter(postgres);
-    const capRoleRepository = new qlCapRoleRepositoryAdapter(postgres);
+    const capRoleRepository = new CapRoleRepositoryAdapter(postgres);
 	const mediaAssetRepository = new MediaAssetRepositoryAdapter(postgres);
 	const staffMediaAssetRepository = new StaffMediaRepositoryAdapter(postgres);
     const activationFailureRepository = new StaffActivationFailureRepositoryAdapter(postgres);
@@ -129,20 +128,14 @@ export default async function IdentityAccessSubsystem(
 		globalEventBus,
 	);
 	const staffEventsAdapter = new StaffEventsAdapter(globalEventBus);
-	const staffClassificationEventsAdapter = new StaffClassEventsAdapter(
-		globalEventBus,
-	);
+	const staffClassificationEventsAdapter = new StaffClassEventsAdapter(globalEventBus);
 
 	// service layer
-	const identityEmailService = new IdentityEmailServiceAdapter(
-		globalResendEmailService,
-	);
+	const identityEmailService = new IdentityEmailServiceAdapter(globalResendEmailService);
 
     const tokenService = new OpaqueTokenServiceAdapter();
 	const cloudinaryMediaService = new CloudinaryMediaServiceAdapter();
-	const classificationService = new ClassificationServiceAdapter(
-		desigCapClassRepository
-	);
+	const classificationService = new ClassificationServiceAdapter(desigCapClassRepository);
 	const roleService = new RoleServiceAdapter(capRoleRepository, roleRepository);
 
 	// application Layer
@@ -335,30 +328,30 @@ export default async function IdentityAccessSubsystem(
 	);
 
 	await fastify.register(identityRoutes, {
-		controller: authenticationController,
+		controller: authenticationController
 	});
 
 	await fastify.register(inviteRoutes, {
-		controller: invitesController,
+		controller: invitesController
 	});
 
 	await fastify.register(orgUnitRoutes, {
-		controller: orgUnitController,
+		controller: orgUnitController
 	});
 
 	await fastify.register(officeRoutes, {
-		controller: officeController,
+		controller: officeController
 	});
 
 	await fastify.register(officeDesignationRoutes, {
-		controller: officeDesignationController,
+		controller: officeDesignationController
 	});
 
 	await fastify.register(staffRoutes, {
-		controller: staffController,
+		controller: staffController
 	});
 
 	await fastify.register(staffClassificationRoutes, {
-		controller: staffClassificationController,
+		controller: staffClassificationController
 	});
 }

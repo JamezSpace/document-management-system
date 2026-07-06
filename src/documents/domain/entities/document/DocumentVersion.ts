@@ -55,14 +55,6 @@ class DocumentVersion {
             this.transitionTo(LifecycleState.IN_REVIEW, actorId);
 	}
 
-	approve(actorId: string) {
-        this.transitionTo(LifecycleState.APPROVED, actorId);
-    }
-	
-    reject(actorId: string) {
-        this.transitionTo(LifecycleState.CANCELLED, actorId);
-    }
-
 	declareRecord(actorId: string) {
         this.transitionTo(LifecycleState.DECLARED_RECORD, actorId);
     }

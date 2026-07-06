@@ -59,13 +59,13 @@ CREATE TYPE document.correspondence_direction AS ENUM(
 	'internal', 'external'
 );
 CREATE TYPE document.lifecycle_state AS ENUM(
-	'draft', 'in_review','approved', 'active', 'declared_record', 'archived', 'cancelled', 'disposed'
+	'draft', 'in_review', 'active', 'declared_record', 'archived', 'cancelled', 'disposed'
 );
 CREATE TYPE document.lifecycle_actions AS ENUM(
 	'save', 'create', 'submit', 'approve', 'reject',  'cancel', 'activate', 'declare_record', 'archive', 'delete',   'dispose'
 );
 CREATE TYPE document.minute_action AS ENUM(
-	 'comment', 'instruction', 'recommend', 'approve',
+	'comment', 'instruction', 'recommend', 'approve',
     'reject', 'forward', 'escalate', 'acknowledge'
 );
 CREATE TYPE document.relationship_type AS ENUM (
@@ -218,7 +218,7 @@ CREATE TABLE identity.offices(
 -- designations table (this comes directly from the organogram)
 CREATE TABLE identity.designations(
 	id VARCHAR(50) PRIMARY KEY,
-	title VARCHAR(150) UNIQUE NOT NULL,
+	title VARCHAR(150) NOT NULL,
 	description TEXT,
 	office_id VARCHAR(50) REFERENCES identity.offices(id),
 	created_at TIMESTAMPTZ NOT NULL,

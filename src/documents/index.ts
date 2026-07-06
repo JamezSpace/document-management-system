@@ -21,7 +21,7 @@ import DocumentCreationUseCase from "./application/usecases/document/CreateDocum
 import DeleteDocumentUseCase from "./application/usecases/document/DeleteDocument.usecase.js";
 import GetAllDocsAddressedToStaffUseCase from "./application/usecases/document/GetAllDocsAddressedToStaff.usecase.js";
 import GetAllDocumentsByStaffUseCase from "./application/usecases/document/GetAllDocsByStaff.usecase.js";
-import GetDocumentByIdUsecase from "./application/usecases/document/GetDocById.usecase.js";
+import GetDocumentByIdUsecase from "./application/usecases/document/GetDocumentById.usecase.js";
 import DocumentSubmissionUseCase from "./application/usecases/document/SubmitDocument.usecase.js";
 import CreateDocumentTypeUsecase from "./application/usecases/documentType/CreateDocType.usecase.js";
 import GetAllDocumentTypesUsecase from "./application/usecases/documentType/GetAllDocTypes.usecase.js";
@@ -210,6 +210,7 @@ export default async function DocumentSubsystem(
 
 	await fastify.register(documentRoutes, {
 		controller: documentController,
+        documentIdentity: documentIdentityAdapter
 	});
 
 	await fastify.register(correspondenceSubjectRoutes, {

@@ -69,17 +69,17 @@ class Document {
 			(a) => a.isPrimary,
 		).length;
 
-		// if (primaryCount !== 1) {
-		// 	throw new DomainError(
-		// 		GlobalDomainErrors.document.INVALID_OPERATION,
-		// 		{
-		// 			details: {
-		// 				message:
-		// 					"Document must have exactly one primary addressee",
-		// 			},
-		// 		},
-		// 	);
-		// }
+		if (primaryCount !== 1) {
+			throw new DomainError(
+				GlobalDomainErrors.document.INVALID_OPERATION,
+				{
+					details: {
+						message:
+							"Document must have exactly one primary addressee",
+					},
+				},
+			);
+		}
 
 		this.addressees = payload.addressees;
 	}

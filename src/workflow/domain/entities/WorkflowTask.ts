@@ -61,11 +61,22 @@ class WorkflowTask {
 		this.status = WorkflowTaskStatus.APPROVED;
 	}
 
-	reject(actorId: string, minuteId?: string | null) {
+	reject(actorId: string, minuteId: string) {
 		this.ensureCanAct(actorId);
 		this.ensurePending();
 
-		this.minuteId = minuteId ?? this.minuteId;
+        if (!minuteId.trim()) {
+            throw new DomainError(
+                GlobalDomainErrors.workflow.REJECTION_MINUTE_REQUIRED,
+                {
+                    details: {
+                        message: "A rejection minute is required."
+                    }
+                }
+            );
+        }
+
+		this.minuteId = minuteId;
 		this.status = WorkflowTaskStatus.REJECTED;
 	}
 

@@ -123,7 +123,7 @@ async function identityRoutes(
 		{ schema: { body: userSchemaForLogin } },
 		async (
 			request: FastifyRequest<{ Body: UserLoginType }>,
-			reply: FastifyReply,
+			reply: FastifyReply
 		) => {
 			const userId = request.body.authProviderId;
 
@@ -165,11 +165,7 @@ async function identityRoutes(
 	// fetch entity that is onboarding
 	fastify.get(
 		"/entity/:token",
-		{
-			schema: {
-				params: tokenIdSchema,
-			},
-		},
+		{ schema: { params: tokenIdSchema } },
 		async (
 			request: FastifyRequest<{ Params: TokenIdType }>,
 			reply: FastifyReply,

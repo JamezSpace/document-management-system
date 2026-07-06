@@ -10,17 +10,14 @@ class DocumentTransitions {
 	private static allowedTransitions = {
 		[LifecycleState.DRAFT]: [null, LifecycleState.IN_REVIEW], // null for CREATE helps to distinguish between items that were either rejected or cancelled
 		[LifecycleState.IN_REVIEW]: [LifecycleState.DRAFT],
-		[LifecycleState.APPROVED]: [LifecycleState.IN_REVIEW],
 		[LifecycleState.ACTIVE]: [
-			LifecycleState.APPROVED,
-			LifecycleState.DRAFT,
+			LifecycleState.IN_REVIEW, // external facing documents
+			LifecycleState.DRAFT, // internal facing documents
 		],
 		[LifecycleState.DECLARED_RECORD]: [
-			LifecycleState.APPROVED,
 			LifecycleState.ACTIVE,
 		],
 		[LifecycleState.ARCHIVED]: [
-			LifecycleState.APPROVED,
 			LifecycleState.ACTIVE,
 			LifecycleState.DECLARED_RECORD,
 		],
@@ -53,15 +50,8 @@ class DocumentTransitions {
 		}
 
 		switch (newState) {
-			case LifecycleState.DRAFT:
-				if (prevState === LifecycleState.IN_REVIEW)
-					this.assertCanReject(prevState);
-				break;
 			case LifecycleState.IN_REVIEW:
 				this.assertCanSubmit(prevState!);
-				break;
-			case LifecycleState.APPROVED:
-				this.assertCanApprove(prevState!);
 				break;
 			case LifecycleState.ACTIVE:
 				this.assertCanActivate(prevState!);
@@ -123,34 +113,10 @@ class DocumentTransitions {
 			);
 	}
 
-	static assertCanApprove(currentState: LifecycleState) {
-		if (currentState !== LifecycleState.IN_REVIEW)
-			throw new DomainError(
-				GlobalDomainErrors.document.INVALID_DOCUMENT_STATE_TRANSITION,
-				{
-					currentState,
-					targetState: LifecycleState.APPROVED,
-					details: { action: LifecycleActions.APPROVE },
-				},
-			);
-	}
-
-	static assertCanReject(currentState: LifecycleState) {
-		if (currentState !== LifecycleState.IN_REVIEW)
-			throw new DomainError(
-				GlobalDomainErrors.document.INVALID_DOCUMENT_STATE_TRANSITION,
-				{
-					currentState,
-					targetState: LifecycleState.DRAFT,
-					details: { action: LifecycleActions.REJECT },
-				},
-			);
-	}
-
 	static assertCanActivate(currentState: LifecycleState) {
-		// allows activation if it's currently APPROVED (normal) or DRAFT (internal fast-track)
+		// allows activation if it's currently DRAFT (internal fast-track)
 		if (
-			![LifecycleState.APPROVED, LifecycleState.DRAFT].includes(
+			![LifecycleState.IN_REVIEW, LifecycleState.DRAFT].includes(
 				currentState,
 			)
 		) {
@@ -166,16 +132,12 @@ class DocumentTransitions {
 	}
 
 	static assertCanDeclareRecord(currentState: LifecycleState) {
-		if (
-			![LifecycleState.APPROVED, LifecycleState.ACTIVE].includes(
-				currentState,
-			)
-		)
+		if (currentState !== LifecycleState.ACTIVE)
 			throw new DomainError(
 				GlobalDomainErrors.document.INVALID_DOCUMENT_STATE_TRANSITION,
 				{
 					currentState,
-					targetState: LifecycleState.DECLARED_RECORD, // Fixed
+					targetState: LifecycleState.DECLARED_RECORD,
 					details: { action: LifecycleActions.DECLARE_RECORD },
 				},
 			);
@@ -184,7 +146,6 @@ class DocumentTransitions {
 	static assertCanArchive(currentState: LifecycleState) {
 		if (
 			![
-				LifecycleState.APPROVED,
 				LifecycleState.ACTIVE,
 				LifecycleState.DECLARED_RECORD,
 			].includes(currentState)

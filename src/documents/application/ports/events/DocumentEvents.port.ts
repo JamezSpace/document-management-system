@@ -20,17 +20,6 @@ interface DocumentEventsPort {
 		submittedBy: string;
 	}): Promise<void>;
 
-	documentApproved(payload: {
-		documentId: string;
-		approvedBy: string;
-	}): Promise<void>;
-
-	documentRejected(payload: {
-		documentId: string;
-		rejectedBy: string;
-		reason: string;
-	}): Promise<void>;
-
 	documentCancelled(payload: {
 		documentId: string;
 		cancelledBy: string;

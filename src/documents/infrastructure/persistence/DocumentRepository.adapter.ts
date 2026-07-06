@@ -14,7 +14,7 @@ import DocumentVersion from "../../domain/entities/document/DocumentVersion.js";
 class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 	constructor(private readonly dbPool: PostgresDb) {}
 
-	private toDomain(row: any): Document {
+	private toDomain(row: any, docAddressees?: any[]): Document {
 		const version = row.current_version_id
 			? new DocumentVersion({
 					documentId: row.id,
@@ -51,7 +51,7 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				direction: row.direction,
 			},
 
-			addressees,
+			addressees: docAddressees ? docAddressees : addressees,
 
 			classification: {
 				sensitivity: row.sensitivity,
@@ -217,12 +217,13 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				document.retention.archivalRequired,
 			]);
 
+            const docAddressees = document.addressees;
 			if (!result.rows || result.rows.length === 0) return null;
 
-			return this.toDomain(result.rows[0]);
+			return this.toDomain(result.rows[0], docAddressees);
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
-
+            
 			throw new InfrastructureError(postgresError.summary, {
 				category: Category.PERSISTENCE,
 				message: postgresError.details?.message ?? error.message,
@@ -246,7 +247,7 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 		);
 	}
 
-	async fetchDocumentsAuthoredByStaff(staffId: string): Promise<Document[]> {
+	async fetchDocumentsByStaff(staffId: string): Promise<Document[]> {
 		try {
 			const query = `
                 SELECT * 
@@ -259,30 +260,6 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 			if (!result.rows || result.rows.length === 0) return [];          
 
 			return result.rows.map((row) => this.toDomain(row));
-		} catch (error: any) {
-			throw new InfrastructureError(
-				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
-				{
-					category: Category.PERSISTENCE,
-					message: error.message,
-				},
-			);
-		}
-	}
-
-	async fetchInboxDocumentsForStaff(staffId: string): Promise<Document[]> {
-		try {
-			const query = `
-                SELECT * 
-                FROM document.docs_addressed_to_staff
-                WHERE staff_id = $1;
-            `;
-
-			const result = await this.dbPool.query(query, [staffId]);
-
-			if (!result.rows || result.rows.length === 0) return [];
-			
-            return result.rows.map((row) => this.toDomain(row));
 		} catch (error: any) {
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,

@@ -29,8 +29,12 @@ SELECT
     staff.updated_at 
 
 FROM identity.staff staff
-LEFT JOIN identity.users users ON staff.identity_id = users.id
-LEFT JOIN identity.organizational_units unit ON staff.unit_id = unit.id
-LEFT JOIN identity.offices office ON staff.office_id = office.id
-LEFT JOIN identity.designations designation ON staff.designation_id = designation.id
+LEFT JOIN identity.users users 
+ON staff.identity_id = users.id
+LEFT JOIN identity.organizational_units unit 
+ON staff.unit_id = unit.id
+LEFT JOIN identity.offices office 
+ON staff.office_id = office.id
+LEFT JOIN identity.designations designation 
+ON staff.designation_id = designation.id
 WHERE staff.id <> 'staff.system';
