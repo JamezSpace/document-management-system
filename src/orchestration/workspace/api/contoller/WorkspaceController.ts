@@ -1,4 +1,4 @@
-import ApiError from "../../../../shared/errors/ApiError.error.js";
+import ApiError from "../../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../../shared/errors/enum/api.enum.js";
 import WorkspacePolicyEvaluator from "../../application/services/WorkspacePolicyEvaluator.js";
 import type GetActorUsecase from "../../application/usecases/GetActor.usecase.js";

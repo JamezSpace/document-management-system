@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import ApiError from "../../../../../shared/errors/ApiError.error.js";
+import ApiError from "../../../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../../../shared/errors/enum/api.enum.js";
 import AuthenticationController from "../../controllers/user/Authentication.controller.js";
 import {

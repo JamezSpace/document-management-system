@@ -19,7 +19,6 @@ import CreateCorrespondenceSubjectUseCase from "./application/usecases/correspon
 import GetAllCorrespondenceSubjectUseCase from "./application/usecases/correspondenceSubject/GetAllCorrespondenceSubject.usecase.js";
 import DocumentCreationUseCase from "./application/usecases/document/CreateDocument.usecase.js";
 import DeleteDocumentUseCase from "./application/usecases/document/DeleteDocument.usecase.js";
-import GetAllDocsAddressedToStaffUseCase from "./application/usecases/document/GetAllDocsAddressedToStaff.usecase.js";
 import GetAllDocumentsByStaffUseCase from "./application/usecases/document/GetAllDocsByStaff.usecase.js";
 import GetDocumentByIdUsecase from "./application/usecases/document/GetDocumentById.usecase.js";
 import DocumentSubmissionUseCase from "./application/usecases/document/SubmitDocument.usecase.js";
@@ -106,10 +105,6 @@ export default async function DocumentSubsystem(
 		documentRepository,
 	);
 
-	const getAllDocsAddressedToUseCase = new GetAllDocsAddressedToStaffUseCase(
-		documentRepository,
-	);
-
 	const getDocumentByIdUseCase = new GetDocumentByIdUsecase(
 		documentRepository,
 	);
@@ -180,7 +175,6 @@ export default async function DocumentSubsystem(
 	const documentController = new DocumentController(
 		createNewDocumentUseCase,
 		getAllDocsByStaffUseCase,
-        getAllDocsAddressedToUseCase,
         getDocumentByIdUseCase,
 		submitDocumentUseCase,
 		deleteDocumentUseCase,

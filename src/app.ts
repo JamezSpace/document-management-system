@@ -3,9 +3,9 @@ import fastifyMultipart from "@fastify/multipart";
 import { fastifyPostgres } from "@fastify/postgres";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import fastify, {
-    type FastifyInstance,
-    type FastifyReply,
-    type FastifyRequest,
+	type FastifyInstance,
+	type FastifyReply,
+	type FastifyRequest,
 } from "fastify";
 import DispatchSubsystem from "./dispatch/index.js";
 import DocumentSubsystem from "./documents/index.js";
@@ -18,7 +18,7 @@ import NotificationSubsystem from "./notifications/index.js";
 import PolicySubsystem from "./policy/index.js";
 import DocumentRetentionPolicyAdapter from "./policy/infrastructre/persistence/DocRetentionPolicy.adapter.js";
 import WorkflowPolicyAdapter from "./policy/infrastructre/persistence/WorkflowPolicy.adapter.js";
-import type { NexusAppError } from "./shared/errors/api/nexusAppError.type.js";
+import type { NexusAppError } from "./shared/errors/model/nexusAppError.model.js";
 import InMemoryEventBusAdapter from "./shared/infrastructure/InMemoryEventBus.js";
 import { dbConfig } from "./shared/infrastructure/persistence/primary/postgres.config.js";
 import WorkflowSubsystem from "./workflow/index.js";
@@ -26,6 +26,7 @@ import DispatchStaffAdapter from "./i & a/identity/infrastructure/persistence/en
 import DispatchDocumentAdapter from "./documents/infrastructure/persistence/DispatchDocumentRepository.adapter.js";
 import DocumentIdentityAdapter from "./i & a/identity/infrastructure/persistence/DocumentIdentity.adapter.js";
 import OrchestrationSubsystem from "./orchestration/workspace/index.js";
+import NexusError from "./shared/errors/NexusError.js";
 
 const server: FastifyInstance = fastify({
 	logger: true,
@@ -53,31 +54,31 @@ server.register(IdentityAccessSubsystem, { prefix: "api/identity" });
 
 server.after(() => {
 	// intersubsystem repo adapters
-    // documents subsystem
+	// documents subsystem
 	const documentPolicyAdapter = new DocumentRetentionPolicyAdapter(server.pg);
 	const documentWorkflowAdapter = new WorkflowDocumentAdapter(server.pg);
 	const policyWorkflowAdapter = new WorkflowPolicyAdapter(server.pg);
 	const accessWorkflowAdapter = new WorkflowAccessRepositoryAdapter(server.pg);
-    const documentIdentityAdapter = new DocumentIdentityAdapter(server.pg);
+	const documentIdentityAdapter = new DocumentIdentityAdapter(server.pg);
 
 	// documents subsystem - services
 	const retentionService = new RetentionService(documentPolicyAdapter);
 
-    // dispatch subsystem
-    const dispatchStaffAdapter = new DispatchStaffAdapter(server.pg);
-    const dispatchDocumentAdapter = new DispatchDocumentAdapter(server.pg);
+	// dispatch subsystem
+	const dispatchStaffAdapter = new DispatchStaffAdapter(server.pg);
+	const dispatchDocumentAdapter = new DispatchDocumentAdapter(server.pg);
 
 	server.register(DocumentSubsystem, {
 		prefix: "api/document",
-        documentIdentityAdapter,
+		documentIdentityAdapter,
 		retentionService,
 		globalEventBus: eventBusAdapter,
 	});
 
-    // orchestration layer
-    server.register(OrchestrationSubsystem, {
-        prefix: "api/"
-    })
+	// orchestration layer
+	server.register(OrchestrationSubsystem, {
+		prefix: "api/"
+	})
 
 	server.register(PolicySubsystem, { prefix: "api/policy" });
 
@@ -89,11 +90,11 @@ server.after(() => {
 		globalEventBus: eventBusAdapter,
 	});
 
-    server.register(DispatchSubsystem, {
-        globalEventBus: eventBusAdapter,
-        dispatchStaffAdapter,
-        dispatchDocumentAdapter
-    })
+	server.register(DispatchSubsystem, {
+		globalEventBus: eventBusAdapter,
+		dispatchStaffAdapter,
+		dispatchDocumentAdapter
+	})
 
 	server.register(NotificationSubsystem, {
 		prefix: "api/notifications",
@@ -139,7 +140,7 @@ server.addHook("preHandler", async (req: FastifyRequest, reply) => {
 			pattern:
 				/^\/api\/identity\/invite\/onboarding\/session\/[^/]+\/media$/,
 		},
-        {
+		{
 			method: ["PATCH"],
 			pattern:
 				/^\/api\/identity\/staff\/[^/]+\/activate$/,
@@ -161,25 +162,44 @@ server.get("/", (request: FastifyRequest, reply: FastifyReply) => {
 });
 
 // set global error handler
-server.setErrorHandler(
-	(error: NexusAppError, request: FastifyRequest, reply: FastifyReply) => {
-		console.log("handler error:", error);
+server.setErrorHandler((error, request, reply) => {
+	request.log.error({ err: error }, "Request failed");
 
-		if (error)
-			return reply.code(error.httpStatusCode).send({
-				success: false,
-				error: {
-					code: error.errorCode,
-					message: error.errorMessage,
-					details: error?.details,
-				},
-			});
-
-		return reply.code(500).send({
+	if (error instanceof NexusError) {
+		return reply.code(error.httpStatusCode).send({
 			success: false,
+			error: {
+				code: {
+					codeName: error.errorCode,
+					httpStatusCode: error.httpStatusCode,
+				},
+				context: {
+					category: error.category,
+					message: error.message,
+					retryable: error.retryable,
+					details: error.details,
+					requestId: request.id,
+				},
+			},
 		});
-	},
-);
+	}
+
+	return reply.code(500).send({
+		success: false,
+		error: {
+			code: {
+				codeName: "internal_server_error",
+				httpStatusCode: 500,
+			},
+			context: {
+				category: "server",
+				message: "The request could not be completed.",
+				retryable: true,
+				requestId: request.id,
+			},
+		},
+	});
+});
 
 server.listen(
 	{ port: Number(process.env?.PORT) || 4200, host: "0.0.0.0" },

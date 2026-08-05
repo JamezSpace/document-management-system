@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import type { NexusAppError } from "../../../../shared/errors/api/nexusAppError.type.js";
+import type { NexusAppError } from "../../../../shared/errors/model/nexusAppError.model.js";
 
 class UnauthorizedError implements NexusAppError {
 	httpStatusCode = StatusCodes.UNAUTHORIZED;

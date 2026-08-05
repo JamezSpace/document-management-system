@@ -13,7 +13,7 @@ import {
 	type TaskIdType,
 	type WorkflowTaskActionType,
 } from "../types/workflow.types.js";
-import ApiError from "../../../shared/errors/ApiError.error.js";
+import ApiError from "../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
 
 async function workflowRoutes(

@@ -5,7 +5,7 @@ class ResendEmailServiceAdapter implements GlobalEmailServicePort {
 	resend: Resend;
 
 	constructor() {
-		this.resend = new Resend(process.env.resend_api_key);
+		this.resend = new Resend(process.env.RESEND_API_KEY);
 	}
 
 	async sendTo(
