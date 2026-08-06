@@ -3,7 +3,6 @@ INSERT INTO identity.staff
 VALUES 
 	('staff.system', NULL, 0, 'permanent', NULL, NULL, NULL, 'active', NOW(), 'staff.system', 'staff.system', NOW());
 	-- add hr record and staff activator with reference to 'staff.system' as created_by
-	('')
 
 
 -- capability class
@@ -76,7 +75,7 @@ VALUES
     ('perm.directive.acknowledge','directive.acknowledge','recipient acknowledges directive'),
     ('perm.directive.enforce','directive.enforce','monitor compliance'),
     -- permission data
-    ('perm.permission.view','permission.view','view permissions');
+    ('perm.permission.view','permission.view','view permissions'),
     ('perm.staff.pending_activation.list',
     'staff.pending_activation.list',
     'list staff pending activation'),
@@ -171,7 +170,7 @@ VALUES
     ('role.sys_admin', 'perm.staff.create'),
     ('role.sys_admin', 'perm.staff.update'),
     ('role.sys_admin', 'perm.staff.activate'),
-    ('role.sys_admin', 'perm.staff.deactivate'),
+    ('role.sys_admin', 'perm.staff.deactivate');
 
 -- capability_role_mappings
 INSERT INTO identity.capability_role_mappings (capability_class_id, role_id)
