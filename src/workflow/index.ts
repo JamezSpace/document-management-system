@@ -74,10 +74,12 @@ export default async function WorkflowSubsystem(
 		documentWorkflowAdapter,
 		workflowEngine,
 		approverResolver,
+		transactionManager,
 	);
 
 	const rejectWorkflowTaskUseCase = new RejectWorkflowTaskUseCase(
 		workflowRepository,
+		transactionManager,
 	);
 
 	const getWorkflowUseCase = new GetWorkflowUseCase(workflowRepository);

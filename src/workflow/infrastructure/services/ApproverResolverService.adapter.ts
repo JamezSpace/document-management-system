@@ -15,13 +15,17 @@ class ApproverResolverServiceAdapter implements ApproverResolverServicePort {
 	): Promise<string[]> {
 		switch (strategy) {
 			case ResolutionStrategy.DIRECT_SUPERVISOR:
-				return this.resolveSupervisor(document.ownerId);
+				return this.resolveSupervisor(document.owner.id);
 
-			case ResolutionStrategy.ROLE_IN_UNIT:
-				return this.resolveRoleInUnit(role, document.unitId);
+			case ResolutionStrategy.ROLE_IN_UNIT: {
+				const { unitId } = document.owner;
+				return unitId ? this.resolveRoleInUnit(role, unitId) : [];
+			}
 
-			case ResolutionStrategy.ROLE_IN_OFFICE:
-				return this.resolveRoleInOffice(role, document.officeId);
+			case ResolutionStrategy.ROLE_IN_OFFICE: {
+				const { officeId } = document.owner;
+				return officeId ? this.resolveRoleInOffice(role, officeId) : [];
+			}
 
 			default:
 				throw new Error("Unsupported resolution strategy");

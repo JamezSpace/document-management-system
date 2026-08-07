@@ -15,15 +15,15 @@ class NodemailerEmailServiceAdapter implements GlobalEmailServicePort {
 				: undefined,
 	});
 
-	async sendTo(payload: {recipientEmail: string, message: string}, type: 'onboarding' | 'notif'): Promise<void> {
-        let subject: string = '';
+	async sendTo(
+		payload: { recipientEmail: string; message: string },
+		type: "onboarding" | "notification",
+	): Promise<boolean> {
+		const subject =
+			type === "notification"
+				? "Notification"
+				: "Activation of Your Nexus-Fons Digital Office Account";
 
-        if(type === 'notif')
-            subject = "Notification"
-        else
-            subject = "Activation of Your Nexus-Fons Digital Office Account"
-
-        
 		await this.transporter.sendMail({
 			from:
 				process.env.MAIL_FROM ??
@@ -33,6 +33,8 @@ class NodemailerEmailServiceAdapter implements GlobalEmailServicePort {
 			subject,
 			text: payload.message,
 		});
+
+		return true;
 	}
 }
 

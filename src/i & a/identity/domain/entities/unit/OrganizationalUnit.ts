@@ -1,4 +1,4 @@
-import type { OrganizationalUnitSector } from "../enum/orgUnitSector.enum.js";
+import type { OrganizationalUnitSector } from "../../enum/orgUnitSector.enum.js";
 
 interface OrganizationUnitPayload {
 	id: string;

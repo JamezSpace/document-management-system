@@ -12,7 +12,7 @@ interface AuditDTO {
   action: string;   // SUBMIT, APPROVE, REJECT
 
   // What was affected
-  subjectType: "DOCUMENT" | "APPROVAL_TASK" | "WORKFLOW";
+  subjectType: "DOCUMENT" | "WORKFLOW_TASK" | "WORKFLOW";
   subjectId: string;
 
   // Result

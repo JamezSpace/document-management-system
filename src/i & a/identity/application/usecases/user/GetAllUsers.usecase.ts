@@ -1,7 +1,7 @@
-import type { UserRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
+import type { IdentityRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
 
 class GetAllUsersUseCase {
-	constructor(private readonly identityRepo: UserRepositoryPort) {}
+	constructor(private readonly identityRepo: IdentityRepositoryPort) {}
 
 	async getAllUsers() {
 		const users = await this.identityRepo.findAllUsers();

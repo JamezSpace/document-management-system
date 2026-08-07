@@ -12,7 +12,7 @@ import type { StaffEventsPort } from "../../ports/events/staff/StaffEvent.port.j
 import type { UserEventsPort } from "../../ports/events/user/UserEvents.port.js";
 import type { InviteRepositoryPort } from "../../ports/repos/entities/user/InviteRepository.port.js";
 import type { OnboardingSessionRepositoryPort } from "../../ports/repos/entities/user/OnboardingSessionRepository.port.js";
-import type { UserRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
+import type { IdentityRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
 import type { AuthServicePort } from "../../ports/services/AuthService.port.js";
 import type { IdentityEmailServicePort } from "../../ports/services/EmailService.port.js";
 import { generateActivationSuccessTemplate } from "../../templates/ActivatedInvite.template.js";
@@ -23,7 +23,7 @@ class CreateStaffViaInviteUseCase {
 		private readonly idGenerator: IdGeneratorPort,
 		private readonly identityEvents: UserEventsPort,
 		private readonly staffEvents: StaffEventsPort,
-		private readonly identityRepo: UserRepositoryPort,
+		private readonly identityRepo: IdentityRepositoryPort,
 		private readonly inviteRepo: InviteRepositoryPort,
 		private readonly onboardingSessionRepo: OnboardingSessionRepositoryPort,
         private readonly recoveryTaskRepo: RecoveryTaskRepositoryPort,

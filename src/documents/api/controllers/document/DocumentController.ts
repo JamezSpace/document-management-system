@@ -62,8 +62,10 @@ class DocumentController {
 					ApplicationErrorEnum.INCOMPLETE_REQUEST,
 					{
 						message: "Recipient unit required",
-						details:
-							"External correspondence requires a recipient organizational unit",
+						details: {
+							reason:
+								"External correspondence requires a recipient organizational unit",
+						},
 					},
 				);
 			}
@@ -78,8 +80,10 @@ class DocumentController {
 				ApplicationErrorEnum.INCOMPLETE_REQUEST,
 				{
 					message: "Addressee required",
-					details:
-						"Internal correspondence requires a responsible addressee",
+					details: {
+						reason:
+							"Internal correspondence requires a responsible addressee",
+					},
 				},
 			);
 		}

@@ -1,6 +1,6 @@
 import { NotificationPreference } from "../../domain/enum/NotificationPreference.enum.js";
-import type EmailSenderService from "../../infrastructre/senders/EmailSender.service.js";
-import type InAppSenderService from "../../infrastructre/senders/InAppSender.service.js";
+import type EmailSenderService from "../../infrastructure/senders/EmailSender.service.js";
+import type InAppSenderService from "../../infrastructure/senders/InAppSender.service.js";
 import type { NotificationRepositoryPort } from "../port/NotificationsRepo.port.js";
 
 class NotificationDispatcher {

@@ -2,10 +2,14 @@
   "name": "document-management-system",
   "version": "1.0.0",
   "description": "",
-  "main": "app.ts",
-  "scripts": {
-    "dev": "tsx --env-file=.env src/app.ts"
-  },
+	"main": "app.ts",
+	"scripts": {
+		"dev": "tsx --env-file=.env src/app.ts",
+		"test": "npm run test:workflow",
+		"test:build": "tsc --outDir .test-dist --declaration false --declarationMap false --sourceMap false",
+		"test:workflow": "npm run test:build && node --test .test-dist/test/workflow/ApproverResolverService.test.js .test-dist/test/workflow/WorkflowTask.test.js .test-dist/test/workflow/WorkflowTaskUseCases.test.js",
+		"typecheck": "tsc --noEmit --pretty false"
+	},
   "keywords": [],
   "author": "",
   "license": "ISC",

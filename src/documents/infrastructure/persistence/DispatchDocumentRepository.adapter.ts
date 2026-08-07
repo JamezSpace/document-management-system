@@ -17,8 +17,10 @@ class DispatchDocumentEntity extends DocumentEntity {
 
 		if (!currentVersion) return false;
 
+		// External documents enter review before dispatch; internal documents
+		// become active immediately when submitted.
 		return (
-			currentVersion.getState() === LifecycleState.APPROVED ||
+			currentVersion.getState() === LifecycleState.IN_REVIEW ||
 			currentVersion.getState() === LifecycleState.ACTIVE
 		);
 	}

@@ -8,27 +8,41 @@ interface WorkflowRepositoryPort {
 		tx?: TransactionContext,
 	): Promise<void>;
 
-	getInstanceById(instanceId: string): Promise<WorkflowInstance | null>;
+	getInstanceById(
+		instanceId: string,
+		tx?: TransactionContext,
+		options?: { forUpdate?: boolean },
+	): Promise<WorkflowInstance | null>;
 
 	getInstanceByDocumentId(
 		documentId: string,
 		tx?: TransactionContext,
 	): Promise<WorkflowInstance | null>;
 
-	updateInstance(instance: WorkflowInstance): Promise<void>;
+	updateInstance(
+		instance: WorkflowInstance,
+		tx?: TransactionContext,
+	): Promise<void>;
 
 	saveTasks(tasks: WorkflowTask[], tx?: TransactionContext): Promise<void>;
 
-	getTasksByInstanceId(instanceId: string): Promise<WorkflowTask[]>;
+	getTasksByInstanceId(
+		instanceId: string,
+		tx?: TransactionContext,
+	): Promise<WorkflowTask[]>;
 
 	getTasksByStep(
 		instanceId: string,
 		stepOrder: number,
+		tx?: TransactionContext,
 	): Promise<WorkflowTask[]>;
 
-	getTaskById(taskId: string): Promise<WorkflowTask | null>;
+	getTaskById(
+		taskId: string,
+		tx?: TransactionContext,
+	): Promise<WorkflowTask | null>;
 
-	updateTask(task: WorkflowTask): Promise<void>;
+	updateTask(task: WorkflowTask, tx?: TransactionContext): Promise<void>;
 }
 
 export type { WorkflowRepositoryPort };

@@ -1,54 +1,67 @@
+import type { TransactionManager } from "../../../shared/application/port/TransactionManager.port.js";
 import ApplicationError from "../../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../../shared/errors/enum/application.enum.js";
+import { WorkflowStatus } from "../../domain/enum/WorkflowStatus.enum.js";
 import type { WorkflowRepositoryPort } from "../port/repos/WorkflowRepository.port.js";
-
 
 class RejectTaskUseCase {
 	constructor(
-		private readonly workflowRepository: WorkflowRepositoryPort
+		private readonly workflowRepository: WorkflowRepositoryPort,
+		private readonly transactionManager: TransactionManager,
 	) {}
 
 	async execute(taskId: string, actorId: string, minuteId: string) {
-		// fetch task
-		const task = await this.workflowRepository.getTaskById(taskId);
+		return this.transactionManager.execute(async (tx) => {
+			const taskReference =
+				await this.workflowRepository.getTaskById(taskId, tx);
 
-		if (!task) {
-			throw new ApplicationError(
-				ApplicationErrorEnum.TASK_NOT_FOUND,
-				{ message: "Workflow task not found" }
+			if (!taskReference) {
+				throw new ApplicationError(ApplicationErrorEnum.TASK_NOT_FOUND, {
+					message: "Workflow task not found",
+				});
+			}
+
+			const instance = await this.workflowRepository.getInstanceById(
+				taskReference.workflowInstanceId,
+				tx,
+				{ forUpdate: true },
 			);
-		}
 
-		// reject task (domain enforces auth + state)
-		task.reject(actorId, minuteId);
+			if (!instance) {
+				throw new ApplicationError(
+					ApplicationErrorEnum.WRKFLOW_NOT_FOUND,
+					{ message: "Workflow instance not found" },
+				);
+			}
 
-		// fetch workflow instance
-		const instance = await this.workflowRepository.getInstanceById(
-			task.workflowInstanceId
-		);
+			const task = await this.workflowRepository.getTaskById(taskId, tx);
 
-		if (!instance) {
-			throw new ApplicationError(
-				ApplicationErrorEnum.WRKFLOW_NOT_FOUND,
-				{ message: "Workflow instance not found" }
-			);
-		}
+			if (!task) {
+				throw new ApplicationError(ApplicationErrorEnum.TASK_NOT_FOUND, {
+					message: "Workflow task not found",
+				});
+			}
 
-		// reject entire workflow
-		instance.reject();
+			if (
+				instance.status !== WorkflowStatus.IN_PROGRESS ||
+				instance.currentStep !== task.stepOrder
+			) {
+				throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+					message: "Task does not belong to the active workflow step",
+				});
+			}
 
-		// persist
-		await this.workflowRepository.updateTask(task);
-		await this.workflowRepository.updateInstance(instance);
+			task.reject(actorId, minuteId);
+			instance.reject();
 
-		// optional (later)
-		// await auditPort.log(...)
-		// await eventBus.publish(...)
+			await this.workflowRepository.updateTask(task, tx);
+			await this.workflowRepository.updateInstance(instance, tx);
 
-		return {
-			workflowInstanceId: instance.id,
-			status: "REJECTED",
-		};
+			return {
+				workflowInstanceId: instance.id,
+				status: WorkflowStatus.REJECTED,
+			};
+		});
 	}
 }
 

@@ -2,14 +2,14 @@ import type { IdGeneratorPort } from "../../../../../shared/application/port/ser
 import Identity from "../../../domain/entities/user/Identity.js";
 import { IdentityStatus } from "../../../domain/entities/user/IdentityStatus.js";
 import type { UserEventsPort } from "../../ports/events/user/UserEvents.port.js";
-import type { UserRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
-import type { User } from "../../types/userDetails.type.js";
+import type { IdentityRepositoryPort } from "../../ports/repos/entities/user/UserRepository.port.js";
+import type { User } from "../../types/user/userDetails.type.js";
 
 class AddNewUserUseCase {
 	constructor(
 		private readonly idGenerator: IdGeneratorPort,
 		private readonly identityEvents: UserEventsPort,
-		private readonly identityRepo: UserRepositoryPort,
+		private readonly identityRepo: IdentityRepositoryPort,
 	) {}
 
 	async addNewUser(payload: Omit<User, 'status' | 'uid'>) {
@@ -18,7 +18,7 @@ class AddNewUserUseCase {
 
 		// create an identity
 		const identity = new Identity({
-			uid: userId,
+			id: userId,
             authProviderId: payload.authProviderId,
 			email: payload.email,
 			phoneNum: payload.phoneNum,

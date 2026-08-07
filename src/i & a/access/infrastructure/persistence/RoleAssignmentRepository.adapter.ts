@@ -86,8 +86,8 @@ class qlRoleAssignmentRepositoryAdapter implements RoleAssignmentRepositoryPort 
 
 			const query = `
 				INSERT INTO identity.role_assignments (
-					id, staff_id, role_id, scope, delegated_by, valid_from, valid_to, created_at
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+					id, staff_id, role_id, scope, delegated_by, source, valid_from, valid_to, created_at
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
 				RETURNING id;
 			`;
 
@@ -99,6 +99,7 @@ class qlRoleAssignmentRepositoryAdapter implements RoleAssignmentRepositoryPort 
 				roleAssignment.role.getId(),
 				null,
 				roleAssignment.delegatedBy ?? null,
+				roleAssignment.source,
 				roleAssignment.validFrom,
 				roleAssignment.getValidTo() ?? null,
 			]);
@@ -123,6 +124,7 @@ class qlRoleAssignmentRepositoryAdapter implements RoleAssignmentRepositoryPort 
 					ra.staff_id,
 					ra.role_id,
 					ra.delegated_by,
+					ra.source,
 					ra.valid_from,
 					ra.valid_to,
 					r.name AS role_name,

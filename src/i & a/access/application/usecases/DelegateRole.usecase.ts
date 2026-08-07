@@ -1,5 +1,7 @@
 import type Role from "../../domain/role/Role.js";
-import RoleAssignment from "../../domain/RoleAssignment.js";
+import RoleAssignment, {
+	RoleAssignmentSource,
+} from "../../domain/RoleAssignment.js";
 import type { AccessEventsPort } from "../ports/AccessEvents.port.js";
 import type { RoleAssignmentRepositoryPort } from "../ports/RoleAssignmentsRepository.port.js";
 
@@ -29,6 +31,7 @@ class DelegateRole {
 			role,
 			validFrom: new Date(),
 			delegatedBy,
+			source: RoleAssignmentSource.MANUAL,
 			validTo,
 		});
 

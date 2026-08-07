@@ -9,7 +9,10 @@ class EditExistingStaffUseCase {
 	) {}
 
     async editExistingStaff(staffId: string, staffUpdate: Partial<Staff>): Promise<Staff | null> {
-        const editedStaff = await this.staffRepo.updateStaff(staffId, staffUpdate)
+        const editedStaff = await this.staffRepo.updateStaff({
+			staffId,
+			changesToMake: staffUpdate,
+		})
 
         return editedStaff;
     }

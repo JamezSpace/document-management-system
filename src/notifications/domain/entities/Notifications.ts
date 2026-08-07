@@ -12,8 +12,8 @@ interface NotificationDTO {
 	recipientId: string;
 	recipientType: NotificationRecipientType;
 
-	eventType: EventType; // DocumentApproved, TaskAssigned
-	subjectType: string; // DOCUMENT, APPROVAL_TASK
+	eventType: EventType;
+	subjectType: string; // For example: DOCUMENT or WORKFLOW_TASK
 	subjectId: string;
 	inAppSubjectName?: string;
 	emailSubjectHeader?: string;

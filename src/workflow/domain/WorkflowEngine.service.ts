@@ -55,7 +55,7 @@ class WorkflowEngine {
 	}
 
 	isStepComplete(tasks: WorkflowTask[]): boolean {
-		return tasks.every(
+		return tasks.length > 0 && tasks.every(
 			(task) => task.getStatus() === WorkflowTaskStatus.APPROVED,
 		);
 	}

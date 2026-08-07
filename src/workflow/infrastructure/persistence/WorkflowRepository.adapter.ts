@@ -62,9 +62,18 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async getInstanceById(instanceId: string, tx?: TransactionContext): Promise<WorkflowInstance | null> {
+	async getInstanceById(
+		instanceId: string,
+		tx?: TransactionContext,
+		options?: { forUpdate?: boolean },
+	): Promise<WorkflowInstance | null> {
 		try {
-			const query = "SELECT * FROM workflow.workflow_instances WHERE id = $1 LIMIT 1;";
+			const lockClause = tx && options?.forUpdate ? " FOR UPDATE" : "";
+			const query = `
+				SELECT * FROM workflow.workflow_instances
+				WHERE id = $1
+				LIMIT 1${lockClause};
+			`;
     
             const executor = tx?.client ?? this.dbPool;
 
@@ -81,7 +90,10 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async getInstanceByDocumentId(documentId: string): Promise<WorkflowInstance | null> {
+	async getInstanceByDocumentId(
+		documentId: string,
+		tx?: TransactionContext,
+	): Promise<WorkflowInstance | null> {
 		try {
 			const query = `
 				SELECT * FROM workflow.workflow_instances
@@ -89,7 +101,8 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 				ORDER BY created_at DESC
 				LIMIT 1;
 			`;
-			const result = await this.dbPool.query(query, [documentId]);
+			const executor = tx?.client ?? this.dbPool;
+			const result = await executor.query(query, [documentId]);
 
 			if (!result.rows || result.rows.length === 0) return null;
 
@@ -102,7 +115,10 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async updateInstance(instance: WorkflowInstance): Promise<void> {
+	async updateInstance(
+		instance: WorkflowInstance,
+		tx?: TransactionContext,
+	): Promise<void> {
 		try {
 			const query = `
 				UPDATE workflow.workflow_instances
@@ -112,7 +128,8 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 				WHERE id = $1;
 			`;
 
-			await this.dbPool.query(query, [
+			const executor = tx?.client ?? this.dbPool;
+			await executor.query(query, [
 				instance.id,
 				instance.currentStep,
 				instance.status,
@@ -159,14 +176,18 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async getTasksByInstanceId(instanceId: string): Promise<WorkflowTask[]> {
+	async getTasksByInstanceId(
+		instanceId: string,
+		tx?: TransactionContext,
+	): Promise<WorkflowTask[]> {
 		try {
 			const query = `
 				SELECT * FROM workflow.workflow_tasks
 				WHERE workflow_instance_id = $1
 				ORDER BY step_order ASC;
 			`;
-			const result = await this.dbPool.query(query, [instanceId]);
+			const executor = tx?.client ?? this.dbPool;
+			const result = await executor.query(query, [instanceId]);
 
 			if (!result.rows || result.rows.length === 0) return [];
 
@@ -179,14 +200,19 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async getTasksByStep(instanceId: string, stepOrder: number): Promise<WorkflowTask[]> {
+	async getTasksByStep(
+		instanceId: string,
+		stepOrder: number,
+		tx?: TransactionContext,
+	): Promise<WorkflowTask[]> {
 		try {
 			const query = `
 				SELECT * FROM workflow.workflow_tasks
 				WHERE workflow_instance_id = $1 AND step_order = $2
 				ORDER BY created_at ASC;
 			`;
-			const result = await this.dbPool.query(query, [instanceId, stepOrder]);
+			const executor = tx?.client ?? this.dbPool;
+			const result = await executor.query(query, [instanceId, stepOrder]);
 
 			if (!result.rows || result.rows.length === 0) return [];
 
@@ -199,10 +225,14 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async getTaskById(taskId: string): Promise<WorkflowTask | null> {
+	async getTaskById(
+		taskId: string,
+		tx?: TransactionContext,
+	): Promise<WorkflowTask | null> {
 		try {
 			const query = "SELECT * FROM workflow.workflow_tasks WHERE id = $1 LIMIT 1;";
-			const result = await this.dbPool.query(query, [taskId]);
+			const executor = tx?.client ?? this.dbPool;
+			const result = await executor.query(query, [taskId]);
 
 			if (!result.rows || result.rows.length === 0) return null;
 
@@ -215,7 +245,10 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 		}
     }
 
-    async updateTask(task: WorkflowTask): Promise<void> {
+	async updateTask(
+		task: WorkflowTask,
+		tx?: TransactionContext,
+	): Promise<void> {
 		try {
 			const actedAt =
 				task.getStatus() === WorkflowTaskStatus.PENDING
@@ -230,7 +263,8 @@ class WorkflowRepository implements WorkflowRepositoryPort {
 				WHERE id = $1;
 			`;
 
-			await this.dbPool.query(query, [
+			const executor = tx?.client ?? this.dbPool;
+			await executor.query(query, [
 				task.id,
 				task.getStatus(),
 				task.getMinuteId(),

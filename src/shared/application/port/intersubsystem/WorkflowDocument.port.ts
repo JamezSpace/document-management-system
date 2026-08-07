@@ -4,9 +4,9 @@ interface DocumentView {
 	docId: string;
 	owner: {
 		id: string;
-		unitId: string;
-		officeId: string;
-		designationId: string;
+		unitId: string | null;
+		officeId: string | null;
+		designationId: string | null;
 	};
 }
 

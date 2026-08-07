@@ -1,4 +1,4 @@
-import type OrganizationalUnit from "../../../domain/unit/OrganizationalUnit.js";
+import type OrganizationalUnit from "../../../../../domain/entities/unit/OrganizationalUnit.js";
 
 interface OrgUnitRepositoryPort {
 	save(orgUnit: OrganizationalUnit): Promise<OrganizationalUnit>;

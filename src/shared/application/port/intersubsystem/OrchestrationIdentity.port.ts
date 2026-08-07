@@ -1,11 +1,13 @@
-import type { StaffDetailsBasePayload } from "../../../../i & a/identity/domain/type/staffDetailsBasePayload.type.js";
+interface WorkspaceActor {
+	id: string;
+}
 
 interface OrchestrationIdentityPort {
-	getStaffFromUid(uid: string): Promise<StaffDetailsBasePayload | null>;
+	getStaffFromUid(uid: string): Promise<WorkspaceActor | null>;
 }
 
 export type { 
     OrchestrationIdentityPort, 
-    StaffDetailsBasePayload as Staff,
+	WorkspaceActor as Staff,
 };
 
