@@ -6,8 +6,8 @@ import type StaffDetailsWithMedia from "../../../../../domain/views/staff/StaffD
 interface StaffRepositoryPort {
 	findStaffWithoutMediaById(staffId: string): Promise<Staff | null>;
 
-	findStaffWithMediaByIdentityId(
-		identityId: string,
+	findStaffWithMediaByStaffId(
+		staffId: string,
 	): Promise<StaffDetailsWithMedia | null>;
 
 	findStaffByAuthProviderId(authProviderId: string): Promise<Staff | null>;

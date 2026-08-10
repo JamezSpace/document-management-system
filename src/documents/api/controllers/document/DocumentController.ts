@@ -22,10 +22,13 @@ class DocumentController {
 		private readonly deleteDocumentUseCase: DeleteDocumentUseCase,
 	) {}
 
-	structureIncomingPayload(payload: DocumentSchemaTypeForCreation) {
+	structureIncomingPayload(
+		payload: DocumentSchemaTypeForCreation,
+		actorStaffId: string,
+	) {
 		return {
 			title: payload.title,
-			createdBy: payload.createdBy,
+			createdBy: actorStaffId,
 			action: payload.action,
 
 			correspondence: {
@@ -49,8 +52,14 @@ class DocumentController {
 		};
 	}
 
-	async createDocument(payload: DocumentSchemaTypeForCreation) {
-		const incomingDocument = this.structureIncomingPayload(payload);        
+	async createDocument(
+		payload: DocumentSchemaTypeForCreation,
+		actorStaffId: string,
+	) {
+		const incomingDocument = this.structureIncomingPayload(
+			payload,
+			actorStaffId,
+		);
 
 		// correspondence matters
 		if (

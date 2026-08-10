@@ -3,7 +3,6 @@ import type { IdGeneratorPort } from "../../../../../../shared/application/port/
 import ApplicationError from "../../../../../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../../../../../shared/errors/enum/application.enum.js";
 import type AssignOfficialRoleUseCase from "../../../../../access/application/usecases/AssignOfficialRole.js";
-import AccessDomainError from "../../../../../access/domain/errors/AccessDomainError.js";
 import StaffClassification from "../../../../domain/entities/staff/StaffClassification.js";
 import { Status } from "../../../../domain/enum/staff.enum.js";
 import type { StaffEventsPort } from "../../../ports/events/staff/StaffEvent.port.js";
@@ -123,7 +122,13 @@ class ActivateStaffUseCase {
 				);
 
 				await this.assignOfficialRole.execute(
-					{ staffId, role: baseRole },
+					{
+						staffId,
+						role: baseRole,
+						scope: { type: "organization", id: null },
+						assignedBy: "staff.system",
+						validFrom: activatedAt,
+					},
 					transactionInstance,
 				);
 
@@ -138,13 +143,16 @@ class ActivateStaffUseCase {
                     if (role.getId() === baseRole.getId()) {
                         continue;
                     }
-                    try {
-                        await this.assignOfficialRole.execute({ staffId, role }, transactionInstance);
-                    } catch(error: any) {
-                        if(error instanceof AccessDomainError) {
-                            console.error(`Official Role Already Assigned: - ${role.name} for staff ${staff.staffNumber}`);
-                        } else throw new Error(error.message)
-                    }
+					await this.assignOfficialRole.execute(
+						{
+							staffId,
+							role,
+							scope: { type: "unit", id: staff.unitId },
+							assignedBy: "staff.system",
+							validFrom: activatedAt,
+						},
+						transactionInstance,
+					);
                 }
 
 				const activatedStaff = await this.staffRepo.updateStaff(

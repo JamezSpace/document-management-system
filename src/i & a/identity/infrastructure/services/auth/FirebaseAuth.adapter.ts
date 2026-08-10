@@ -21,30 +21,19 @@ class FirebaseAuthAdapter implements AuthServicePort {
 				true,
 			);
 
-			console.log("decoded from firebase auth adapter:", decodedToken);
-
 			return decodedToken.uid;
-		} catch (error: any) {
-			console.log("firebase adapter error:", error);
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Invalid Firebase ID token";
 
-			if (
-				["auth/id-token-expired", "auth/argument-error"].includes(
-					error.code,
-				)
-			)
-				throw new InfrastructureError(
-					GlobalInfrastructureErrors.auth.ID_TOKEN_INVALID,
-					{
-						category: Category.AUTH,
-						message: "Firebase ID token has expired",
-					},
-				);
-
-			// throw new UnauthorizedError({
-			//     errorCode: "AUTH_MIDDLEWARE_03",
-			//     errorMessage: "Unauthenticated",
-			//     details: "Firebase ID token has expired"
-			// })
+			throw new InfrastructureError(
+				GlobalInfrastructureErrors.auth.ID_TOKEN_INVALID,
+				{
+					category: Category.AUTH,
+					message,
+					cause: error,
+				},
+			);
 		}
 	}
 

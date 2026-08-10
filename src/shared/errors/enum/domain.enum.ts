@@ -72,6 +72,24 @@ export const AccessDomainErrors = {
 		category: ErrorCategory.CONFLICT,
 		retryable: false,
 	},
+	INVALID_ROLE_ASSIGNMENT_SCOPE: {
+		codeName: "invalid_role_assignment_scope",
+		httpStatusCode: StatusCodes.BAD_REQUEST,
+		category: ErrorCategory.VALIDATION,
+		retryable: false,
+	},
+	INVALID_ROLE_ASSIGNMENT_VALIDITY: {
+		codeName: "invalid_role_assignment_validity",
+		httpStatusCode: StatusCodes.BAD_REQUEST,
+		category: ErrorCategory.VALIDATION,
+		retryable: false,
+	},
+	INVALID_ROLE_ASSIGNMENT_PROVENANCE: {
+		codeName: "invalid_role_assignment_provenance",
+		httpStatusCode: StatusCodes.BAD_REQUEST,
+		category: ErrorCategory.VALIDATION,
+		retryable: false,
+	},
 	INVALID_CREDEDNTIALS: {
 		codeName: "invalid_request_parameters",
 		httpStatusCode: StatusCodes.BAD_REQUEST,

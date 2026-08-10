@@ -10,11 +10,11 @@ class GetEffectivePermissionsUseCase {
 	) {}
 
 	async getEffectivePermissions(staffId: string) {
-		const assignments =
-				await this.roleAssignmentRepo.findRoleAssignmentsByStaffId(
-					staffId,
-				),
-			activeAssignments = assignments.filter((a) => a.isActive());
+		const activeAssignments =
+			await this.roleAssignmentRepo.findEffectiveByStaffId(
+				staffId,
+				new Date(),
+			);
 
 		const rolePermissionMap = new Map<
 			string,

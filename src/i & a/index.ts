@@ -7,9 +7,14 @@ import InMemoryEventBusAdapter from "../shared/infrastructure/InMemoryEventBus.j
 import MediaAssetRepositoryAdapter from "../shared/infrastructure/persistence/primary/MediaAssetRepository.adapter.js";
 import RecoveryTaskRepositoryAdapter from "../shared/infrastructure/persistence/primary/RecoveryTaskRepository.adapter.js";
 import TransactionManager from "../shared/infrastructure/persistence/primary/TransactionManager.js";
+import RoleAssignmentController from "./access/api/controllers/RoleAssignment.controller.js";
+import roleAssignmentRoutes from "./access/api/routes/roleAssignment.route.js";
 import AssignOfficialRoleUseCase from "./access/application/usecases/AssignOfficialRole.js";
-import GetEffectivePermissionsUseCase from "./access/application/usecases/GetEffectivePermissions.usecase.js";
+import AssignRoleUseCase from "./access/application/usecases/AssignRole.usecase.js";
+import DelegateRole from "./access/application/usecases/DelegateRole.usecase.js";
+import ListRoleAssignmentsUseCase from "./access/application/usecases/ListRoleAssignments.usecase.js";
 import ResolveStaffAuthorityUseCase from "./access/application/usecases/ResolveStaffAuthority.usecase.js";
+import RevokeRole from "./access/application/usecases/RevokeRole.js";
 import RoleAssignmentRepositoryAdapter from "./access/infrastructure/persistence/RoleAssignmentRepository.adapter.js";
 import RoleRepositoryAdapter from "./access/infrastructure/persistence/RoleRepository.adapter.js";
 import AccessEventsAdapter from "./access/infrastructure/queue/AccessEvents.adapter.js";
@@ -19,7 +24,6 @@ import OrgUnitController from "./identity/api/controllers/organizationalUnit/Org
 import StaffController from "./identity/api/controllers/staff/Staff.controller.js";
 import StaffClassificationController from "./identity/api/controllers/staff/StaffClassification.controller.js";
 import AuthenticationController from "./identity/api/controllers/user/Authentication.controller.js";
-import AuthorityController from "./identity/api/controllers/user/Authority.controller.js";
 import InvitesController from "./identity/api/controllers/user/Invites.controller.js";
 import officeDesignationRoutes from "./identity/api/routes/office/designation.route.js";
 import officeRoutes from "./identity/api/routes/office/office.route.js";
@@ -165,11 +169,6 @@ export default async function IdentityAccessSubsystem(
         onboardingSessionRepo
 	);
 
-	const getEffectivePermissionsUseCase = new GetEffectivePermissionsUseCase(
-		accessEventsAdapter,
-		roleAssignmentsRepository,
-	);
-
 	const activatePendingUserUseCase = new ActivatePendingUserUseCase(
 		identityEventsAdapter,
 		identityRepository,
@@ -219,7 +218,31 @@ export default async function IdentityAccessSubsystem(
 		staffRepositoryAdapter,
 	);
 
-    const assignOfficialRoleUseCase = new AssignOfficialRoleUseCase(accessEventsAdapter, roleAssignmentsRepository);
+	const assignOfficialRoleUseCase = new AssignOfficialRoleUseCase(
+		accessEventsAdapter,
+		roleAssignmentsRepository,
+		idGenerator,
+	);
+	const assignRoleUseCase = new AssignRoleUseCase(
+		idGenerator,
+		roleRepository,
+		roleAssignmentsRepository,
+		accessEventsAdapter,
+	);
+	const delegateRoleUseCase = new DelegateRole(
+		accessEventsAdapter,
+		roleAssignmentsRepository,
+		idGenerator,
+		transactionManager,
+	);
+	const revokeRoleUseCase = new RevokeRole(
+		accessEventsAdapter,
+		roleAssignmentsRepository,
+		transactionManager,
+	);
+	const listRoleAssignmentsUseCase = new ListRoleAssignmentsUseCase(
+		roleAssignmentsRepository,
+	);
 
 	const activateStaffUseCase = new ActivateStaffUseCase(
 		idGenerator,
@@ -291,8 +314,11 @@ export default async function IdentityAccessSubsystem(
 
     const invitesController = new InvitesController(createInviteUsecase, getAllInvitesUsecase, nudgeInviteUsecase);
 
-	const authorityController = new AuthorityController(
-		getEffectivePermissionsUseCase,
+	const roleAssignmentController = new RoleAssignmentController(
+		assignRoleUseCase,
+		delegateRoleUseCase,
+		revokeRoleUseCase,
+		listRoleAssignmentsUseCase,
 	);
 
 	const orgUnitController = new OrgUnitController(
@@ -353,5 +379,9 @@ export default async function IdentityAccessSubsystem(
 
 	await fastify.register(staffClassificationRoutes, {
 		controller: staffClassificationController
+	});
+
+	await fastify.register(roleAssignmentRoutes, {
+		controller: roleAssignmentController,
 	});
 }

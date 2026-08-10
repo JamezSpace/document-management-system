@@ -25,13 +25,15 @@ const documentMinuteParamsSchema = Type.Object({
 	minuteId: Type.String(),
 });
 
-const minuteSchemaForCreation = Type.Object({
-	authorStaffId: Type.String(),
-	action: Type.Enum(MinuteAction),
-	content: Type.String(),
-	inboxEntryId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-	parentMinuteId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-});
+const minuteSchemaForCreation = Type.Object(
+	{
+		action: Type.Enum(MinuteAction),
+		content: Type.String(),
+		inboxEntryId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+		parentMinuteId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+	},
+	{ additionalProperties: false },
+);
 
 type DocumentIdSchemaType = Static<typeof documentIdSchema>;
 type MinuteIdSchemaType = Static<typeof minuteIdSchema>;

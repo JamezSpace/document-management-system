@@ -242,13 +242,13 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 		}
 	}
 
-	async findStaffWithMediaByIdentityId(
-		identityId: string,
+	async findStaffWithMediaByStaffId(
+		staffId: string,
 	): Promise<StaffDetailsWithMedia | null> {
 		try {
 			const query =
-				"SELECT * FROM identity.staff_details_with_media WHERE ap_id = $1";
-			const result = await this.dbPool.query(query, [identityId]);
+				"SELECT * FROM identity.staff_details_with_media WHERE id = $1";
+			const result = await this.dbPool.query(query, [staffId]);
 
 			if (result.rows.length === 0) {
 				return null;

@@ -10,10 +10,14 @@ class MinuteController {
 		private readonly getMinutesByDocumentIdUseCase: GetMinutesByDocumentIdUseCase,
 	) {}
 
-	async createMinute(documentId: string, payload: MinuteSchemaForCreationType) {        
+	async createMinute(
+		documentId: string,
+		authorStaffId: string,
+		payload: MinuteSchemaForCreationType,
+	) {
 		return this.createMinuteUseCase.execute({
 			documentId,
-			authorStaffId: payload.authorStaffId,
+			authorStaffId,
 			action: payload.action,
 			content: payload.content,
 			inboxEntryId: payload.inboxEntryId ?? null,

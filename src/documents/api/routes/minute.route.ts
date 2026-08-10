@@ -10,6 +10,7 @@ import {
     type DocumentMinuteParamsSchemaType,
     type MinuteSchemaForCreationType,
 } from "../types/minute.type.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
 
 async function minuteRoutes(
 	fastify: FastifyInstance,
@@ -20,7 +21,12 @@ async function minuteRoutes(
     // add a minute to a correspondence
 	fastify.post(
 		"/documents/:documentId/minutes",
-		{ schema: { params: documentIdSchema, body: minuteSchemaForCreation } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.route"),
+			},
+			schema: { params: documentIdSchema, body: minuteSchemaForCreation },
+		},
 		async (
 			request: FastifyRequest<{
 				Params: DocumentIdSchemaType;
@@ -28,17 +34,13 @@ async function minuteRoutes(
 			}>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
-			if (!uid) {
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-			}
-
 			const { documentId } = request.params;
 			const payload = request.body;
-			const minute = await minuteController.createMinute(documentId, payload);
+			const minute = await minuteController.createMinute(
+				documentId,
+				request.actor!.staffId,
+				payload,
+			);
 
 			return reply.code(201).send({
 				success: true,
@@ -50,19 +52,16 @@ async function minuteRoutes(
     // fetch all minutes for a particular correspondence
 	fastify.get(
 		"/documents/:documentId/minutes",
-		{ schema: { params: documentIdSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+			schema: { params: documentIdSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
-			if (!uid) {
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-			}
-
 			const { documentId } = request.params;
 			const minutes = await minuteController.fetchMinutesByDocumentId(
 				documentId,
@@ -78,19 +77,16 @@ async function minuteRoutes(
     // get a specific minute for a specific correspondence
 	fastify.get(
 		"/documents/:documentId/minutes/:minuteId",
-		{ schema: { params: documentMinuteParamsSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+			schema: { params: documentMinuteParamsSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: DocumentMinuteParamsSchemaType }>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
-			if (!uid) {
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-			}
-
 			const { documentId, minuteId } = request.params;
 			const minute = await minuteController.fetchMinuteById(minuteId);
 

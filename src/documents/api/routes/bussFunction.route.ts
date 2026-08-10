@@ -4,6 +4,7 @@ import {
 	bussFunctionSchema,
 	type BussFunctionType,
 } from "../types/bussFunction.type.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
 
 async function businessFunctionRoutes(
 	fastify: FastifyInstance,
@@ -15,23 +16,23 @@ async function businessFunctionRoutes(
 
 	fastify.post(
 		"/function",
-		{ schema: { body: bussFunctionSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability(
+					"document.classification.manage",
+				),
+			},
+			schema: { body: bussFunctionSchema },
+		},
 		async (
 			request: FastifyRequest<{ Body: BussFunctionType }>,
 			reply: FastifyReply,
 		) => {
-            const payload = request.body;
-            const {uid} = request.user!
-
-            if(!uid) 
-                return reply.code(401).send({
-                    success: true,
-                    message: "Only an authorized user can carry out this operation."
-                })
+			const payload = request.body;
 
 			const newBusinessFunction =
 				await businessFunctionController.createBusinessFunction(
-                    uid, payload
+					request.actor!.staffId, payload
 				);
 
 			return reply.code(201).send({
@@ -41,18 +42,15 @@ async function businessFunctionRoutes(
         }
 	);
 
-    fastify.get(
+	fastify.get(
 		"/functions",
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
-            const { uid } = request.user!;
-
-             if(!uid) 
-                return reply.code(401).send({
-                    success: true,
-                    message: "No uid extracted from access token"
-                })
-
-            // fetch business functions
+			// fetch business functions
             const functions = await businessFunctionController.getAllBussFunctions();
 
             return reply.code(200).send({

@@ -1,12 +1,19 @@
-import 'fastify';
-import type fastify from 'fastify';
+import "fastify";
+import type {
+	ActorContext,
+	RouteAuthorizationPolicy,
+} from "../../../security/application/authorization.types.js";
 
-declare module 'fastify' {
-  // We are "opening" the FastifyRequest interface to add our property
-  interface FastifyRequest {
-    user: {
-      uid: string;
-      email?: string;
-    } | null;
-  }
+declare module "fastify" {
+	interface FastifyRequest {
+		user: {
+			uid: string;
+			email?: string;
+		} | null;
+		actor: ActorContext | null;
+	}
+
+	interface FastifyContextConfig {
+		authorization?: RouteAuthorizationPolicy;
+	}
 }

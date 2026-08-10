@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type StaffController from "../../controllers/staff/Staff.controller.js";
 import {
     authProviderIdSchema,
@@ -97,17 +98,11 @@ async function staffRoutes(
 	// staff login
 	fastify.get(
 		"/staff/me",
+		{ config: { authorization: routePolicies.authenticatedSelf } },
 		async (request: FastifyRequest, reply: FastifyReply) => {
-			const { uid, email } = request.user!;
-
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-
-			// fetch staff details
-			const staff = await staffController.fetchStaffWithAuthority(uid);
+			const staff = await staffController.fetchStaffWithAuthority(
+				request.actor!.staffId,
+			);
 
 			return staff
 				? reply.code(200).send({

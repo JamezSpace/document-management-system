@@ -17,7 +17,7 @@ export const ApiErrorEnum = {
     },
     NOT_ALLOWED: {
         codeName: "not_allowed",
-        httpStatusCode: StatusCodes.UNAUTHORIZED,
+        httpStatusCode: StatusCodes.FORBIDDEN,
         category: ErrorCategory.AUTHORIZATION,
         retryable: false,
     },

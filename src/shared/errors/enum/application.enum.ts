@@ -99,6 +99,12 @@ export const ApplicationErrorEnum = {
 		category: ErrorCategory.NOT_FOUND,
 		retryable: false,
 	},
+	REGISTRY_RESOURCE_NOT_FOUND: {
+		codeName: "registry_resource_not_found",
+		httpStatusCode: StatusCodes.NOT_FOUND,
+		category: ErrorCategory.NOT_FOUND,
+		retryable: false,
+	},
 	CONFLICT: {
 		codeName: "conflict",
 		httpStatusCode: StatusCodes.CONFLICT,

@@ -9,11 +9,11 @@ class FetchStaffRecordUsecase {
 		return staff;
 	}
 
-    async fetchStaffWithMedia(uid: string) {
-        const staffDetails = await this.staffRepo.findStaffWithMediaByIdentityId(uid)
+	async fetchStaffWithMedia(staffId: string) {
+		const staffDetails = await this.staffRepo.findStaffWithMediaByStaffId(staffId);
 
-        return staffDetails;
-    }
+		return staffDetails;
+	}
 
     async fetchStaffByAuthProviderId(authProviderId: string) {
         const staff = await this.staffRepo.findStaffByAuthProviderId(authProviderId);

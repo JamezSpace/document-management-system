@@ -99,15 +99,36 @@ class WorkflowAccessRepositoryAdapter implements WorkflowAccessPort {
 	): Promise<string[]> {
 		try {
 			const query = `
-                SELECT ra.staff_id
-                FROM identity.role_assignments ra
-                INNER JOIN identity.roles r ON r.id = ra.role_id
-                WHERE r.name = $1
-                  AND ra.valid_from <= NOW()
-                  AND (ra.valid_to IS NULL OR ra.valid_to >= NOW())
-                  AND ($2::text IS NULL OR ra.scope ->> 'unitId' = $2)
-                  AND ($3::text IS NULL OR ra.scope ->> 'officeId' = $3);
-            `;
+				SELECT DISTINCT ra.staff_id
+				FROM identity.role_assignments ra
+				INNER JOIN identity.roles r ON r.id = ra.role_id
+				INNER JOIN identity.staff s ON s.id = ra.staff_id
+				LEFT JOIN identity.offices requested_office ON requested_office.id = $3
+				WHERE r.name = $1
+				  AND s.status = 'active'
+				  AND ra.valid_from <= NOW()
+				  AND (ra.valid_to IS NULL OR NOW() < ra.valid_to)
+				  AND ra.revoked_at IS NULL
+				  AND (
+					ra.scope_type = 'organization'
+					OR (
+						$2::text IS NOT NULL
+						AND ra.scope_type = 'unit'
+						AND ra.scope_unit_id = $2
+					)
+					OR (
+						$3::text IS NOT NULL
+						AND ra.scope_type = 'office'
+						AND ra.scope_office_id = $3
+					)
+					OR (
+						$3::text IS NOT NULL
+						AND ra.scope_type = 'unit'
+						AND ra.scope_unit_id = requested_office.unit_id
+					)
+				  )
+				ORDER BY ra.staff_id;
+			`;
 
 			const result = await this.dbPool.query(query, [
 				role,

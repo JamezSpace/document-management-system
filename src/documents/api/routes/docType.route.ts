@@ -6,6 +6,7 @@ import {
 	type DocTypeCreationType,
     type DocTypeIdSchemaType,
 } from "../types/docType.type.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
 
 async function documentTypeRoutes(
 	fastify: FastifyInstance,
@@ -17,24 +18,20 @@ async function documentTypeRoutes(
 
 	fastify.post(
 		"/type",
-		{ schema: { body: docTypeCreationSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.type.manage"),
+			},
+			schema: { body: docTypeCreationSchema },
+		},
 		async (
 			request: FastifyRequest<{ Body: DocTypeCreationType }>,
 			reply: FastifyReply,
 		) => {
 			const payload = request.body;
-			// const { uid } = request.user!;
-
-			// if (!uid)
-			// 	return reply.code(401).send({
-			// 		success: true,
-			// 		message:
-			// 			"Only an authorized user can carry out this operation.",
-			// 	});
 
 			const newDocumentType = await docTypeController.createDocumentType(
-				// uid,
-                '',
+				request.actor!.staffId,
 				payload,
 			);
 
@@ -46,18 +43,15 @@ async function documentTypeRoutes(
 	);
 
     // all document types
-    fastify.get(
+	fastify.get(
 		"/types",
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
-            const { uid } = request.user!;
-
-             if(!uid) 
-                return reply.code(401).send({
-                    success: true,
-                    message: "No uid extracted from access token"
-                })
-
-            // fetch document types
+			// fetch document types
             const docTypes = await docTypeController.getAllDocTypes();
 
             return reply.code(200).send({
@@ -67,15 +61,13 @@ async function documentTypeRoutes(
         });
 
     // fetch a specific document type
-    fastify.get("/type/:typeId", {schema: {params: docTypeIdSchema} }, async(request: FastifyRequest<{Params: DocTypeIdSchemaType}>, reply: FastifyReply) => {
-        const { uid } = request.user!;
+	fastify.get("/type/:typeId", {
+		config: {
+			authorization: routePolicies.capability("document.view"),
+		},
+		schema: { params: docTypeIdSchema },
+	}, async(request: FastifyRequest<{Params: DocTypeIdSchemaType}>, reply: FastifyReply) => {
 			const { typeId } = request.params;
-
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
 
 			// fetch document type by id
 			const docType =

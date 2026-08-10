@@ -16,6 +16,7 @@ import {
 } from "../types/workflow.types.js";
 import ApiError from "../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
 
 async function workflowRoutes(
 	fastify: FastifyInstance,
@@ -25,7 +26,12 @@ async function workflowRoutes(
 
 	fastify.get(
 		"/documents/:documentId",
-		{ schema: { params: documentIdSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+			schema: { params: documentIdSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: DocumentIdType }>,
 			reply: FastifyReply,
@@ -46,23 +52,24 @@ async function workflowRoutes(
 
 	fastify.post(
 		"/tasks/:taskId/approve",
-		{ schema: { params: taskIdSchema, body: workflowTaskApprovalSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.approve"),
+			},
+			schema: { params: taskIdSchema, body: workflowTaskApprovalSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: TaskIdType; Body: WorkflowTaskApprovalType }>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
-			if (!uid) {
-				return reply.code(401).send({
-					success: false,
-					message: "No uid extracted from access token",
-				});
-			}
-
 			const { taskId } = request.params;
 			const { minuteId } = request.body;
 
-			const result = await workflowController.approveTask(taskId, uid, minuteId ?? null);
+			const result = await workflowController.approveTask(
+				taskId,
+				request.actor!.staffId,
+				minuteId ?? null,
+			);
 
 			return reply.code(200).send({ success: true, data: result });
 		},
@@ -70,23 +77,24 @@ async function workflowRoutes(
 
 	fastify.post(
 		"/tasks/:taskId/reject",
-		{ schema: { params: taskIdSchema, body: workflowTaskRejectionSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability("document.reject"),
+			},
+			schema: { params: taskIdSchema, body: workflowTaskRejectionSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: TaskIdType; Body: WorkflowTaskRejectionType }>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
-			if (!uid) {
-				return reply.code(401).send({
-					success: false,
-					message: "No uid extracted from access token",
-				});
-			}
-
 			const { taskId } = request.params;
 			const { minuteId } = request.body;
 
-			const result = await workflowController.rejectTask(taskId, uid, minuteId);
+			const result = await workflowController.rejectTask(
+				taskId,
+				request.actor!.staffId,
+				minuteId,
+			);
 
 			return reply.code(200).send({ success: true, data: result });
 		},

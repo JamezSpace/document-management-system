@@ -4,6 +4,7 @@ import {
 	corrSubjectSchema,
 	type CorrSubjectType,
 } from "../types/corrSubject.type.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
 
 async function correspondenceSubjectRoutes(
 	fastify: FastifyInstance,
@@ -15,7 +16,14 @@ async function correspondenceSubjectRoutes(
 
 	fastify.post(
 		"/subject",
-		{ schema: { body: corrSubjectSchema } },
+		{
+			config: {
+				authorization: routePolicies.capability(
+					"document.classification.manage",
+				),
+			},
+			schema: { body: corrSubjectSchema },
+		},
 		async (
 			request: FastifyRequest<{ Body: CorrSubjectType }>,
 			reply: FastifyReply,
@@ -36,16 +44,13 @@ async function correspondenceSubjectRoutes(
 
 	fastify.get(
 		"/subjects",
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
-            const { uid } = request.user!;
-
-             if(!uid) 
-                return reply.code(401).send({
-                    success: true,
-                    message: "No uid extracted from access token"
-                })
-
-            // fetch correspondence subjects
+			// fetch correspondence subjects
             const subjects = await correspondenceSubjectController.getAllCorrSubjects();
 
             return reply.code(200).send({

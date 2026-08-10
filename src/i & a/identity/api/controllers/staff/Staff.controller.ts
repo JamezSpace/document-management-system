@@ -91,21 +91,40 @@ class StaffController {
 		return allStaffMembers;
     }
 
-	async fetchStaffWithMediaForLogin(uid: string) {
-		const me = this.fetchStaffUseCase.fetchStaffWithMedia(uid);
+	async fetchStaffWithMediaForLogin(staffId: string) {
+		const me = this.fetchStaffUseCase.fetchStaffWithMedia(staffId);
 
 		return me;
 	}
 
-	async fetchStaffWithAuthority(uid: string) {
-		const staff = await this.fetchStaffWithMediaForLogin(uid);
+	async fetchStaffWithAuthority(staffId: string) {
+		const staff = await this.fetchStaffWithMediaForLogin(staffId);
 
 		if (!staff) return null;
 
-		const authority = await this.resolveStaffAuthorityUseCase.execute(staff.getStaffId());
+		const authority = await this.resolveStaffAuthorityUseCase.execute(
+			staff.getStaffId(),
+		);
 
 		return {
-			...staff,
+			staff: {
+				id: staff.getStaffId(),
+				identityId: staff.identityId,
+				firstName: staff.firstName,
+				middleName: staff.middleName,
+				lastName: staff.lastName,
+				fullName: staff.fullName,
+				email: staff.email,
+				staffNumber: staff.staffNumber,
+				employmentType: staff.employmentType,
+				status: staff.status,
+				unit: staff.unit,
+				office: staff.office,
+				designation: staff.designation,
+				media: staff.media,
+				createdAt: staff.createdAt,
+				updatedAt: staff.updatedAt ?? null,
+			},
 			authority,
 		};
 	}

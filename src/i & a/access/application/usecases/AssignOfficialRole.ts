@@ -1,67 +1,72 @@
-import { GlobalDomainErrors } from "../../../../shared/errors/enum/domain.enum.js";
+import type { AuthorizationScope } from "../../../../security/application/authorization.types.js";
+import type { IdGeneratorPort } from "../../../../shared/application/port/services/IdGenerator.port.js";
 import type { TransactionContext } from "../../../../shared/infrastructure/persistence/primary/postgres.js";
-import AccessDomainError from "../../domain/errors/AccessDomainError.js";
 import type Role from "../../domain/role/Role.js";
-import RoleAssignment, { RoleAssignmentSource } from "../../domain/RoleAssignment.js";
+import RoleAssignment, {
+	RoleAssignmentSource,
+} from "../../domain/RoleAssignment.js";
 import type { AccessEventsPort } from "../ports/AccessEvents.port.js";
 import type { RoleAssignmentRepositoryPort } from "../ports/RoleAssignmentsRepository.port.js";
 
 class AssignOfficialRoleUseCase {
-	private readonly authorityEvents: AccessEventsPort;
-	private readonly roleAssignmentRepo: RoleAssignmentRepositoryPort;
-	private readonly baseRoleId = "role.staff_member";
-
 	constructor(
-		authorityEvents: AccessEventsPort,
-		accessRepo: RoleAssignmentRepositoryPort,
-	) {
-		this.authorityEvents = authorityEvents;
-		this.roleAssignmentRepo = accessRepo;
-	}
+		private readonly authorityEvents: AccessEventsPort,
+		private readonly roleAssignmentRepo: RoleAssignmentRepositoryPort,
+		private readonly idGenerator: IdGeneratorPort,
+	) {}
 
-	async execute(payload: {staffId: string, role: Role}, tx?: TransactionContext) {
-        // check if official role has been assigned previously
-		const assignments =
-				await this.roleAssignmentRepo.findRoleAssignmentsByStaffId(
-					payload.staffId,
-                    tx
-				),
-			activeAssignments = assignments.filter((a) => a.isActive());
-
-		if (
-			payload.role.getId() === this.baseRoleId &&
-			activeAssignments.some((a) => a.role.getId() === this.baseRoleId)
-		) {
-			return;
-		}
-
-		const hasOfficialRole = activeAssignments.some(
-			(a) => !a.delegatedBy && a.role.getId() !== this.baseRoleId,
+	async execute(
+		payload: {
+			staffId: string;
+			role: Role;
+			scope?: AuthorizationScope;
+			assignedBy?: string;
+			validFrom?: Date;
+			validTo?: Date | null;
+		},
+		tx?: TransactionContext,
+	): Promise<RoleAssignment> {
+		const scope = payload.scope ?? { type: "organization", id: null };
+		const validFrom = payload.validFrom ?? new Date();
+		const assignments = await this.roleAssignmentRepo.findByStaffId(
+			payload.staffId,
+			tx,
+		);
+		const existing = assignments.find(
+			(assignment) =>
+				assignment.role.getId() === payload.role.getId() &&
+				assignment.isActive(validFrom) &&
+				scopesEqual(assignment.scope, scope),
 		);
 
-		if (hasOfficialRole) {
-			throw new AccessDomainError(
-				GlobalDomainErrors.identity_authority.access.OFFICIAL_ROLE_ALREADY_ASSIGNED
-			);
-		}
+		if (existing) return existing;
 
-		// create assignment
 		const assignment = new RoleAssignment({
-			identityId: payload.staffId,
+			id: `ROLE-ASSIGN-${this.idGenerator.generate()}`,
+			staffId: payload.staffId,
 			role: payload.role,
-			validFrom: new Date(),
-            source: RoleAssignmentSource.DERIVED
+			scope,
+			source: RoleAssignmentSource.DERIVED,
+			validFrom,
+			validTo: payload.validTo ?? null,
+			assignedBy: payload.assignedBy ?? "staff.system",
 		});
 
-		// persist to the database
-		const roleAssigned = await this.roleAssignmentRepo.save(assignment, tx);
+		await this.roleAssignmentRepo.insert(assignment, tx);
+		await this.authorityEvents.officialRoleAssigned({
+			staffId: payload.staffId,
+			role: payload.role,
+		});
 
-        if(roleAssigned)
-            await this.authorityEvents.officialRoleAssigned({
-                staffId: payload.staffId,
-                role: payload.role,
-            })
+		return assignment;
 	}
+}
+
+function scopesEqual(
+	left: AuthorizationScope,
+	right: AuthorizationScope,
+): boolean {
+	return left.type === right.type && left.id === right.id;
 }
 
 export default AssignOfficialRoleUseCase;

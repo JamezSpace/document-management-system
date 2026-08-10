@@ -25,10 +25,10 @@ const documentVersionSchema = Type.Object({
 	}),
 });
 
-const documentSchemaForCreation = Type.Object({
-	title: Type.String(),
-	createdBy: Type.String(),
-	action: Type.Enum(LifecycleActions),
+const documentSchemaForCreation = Type.Object(
+	{
+		title: Type.String(),
+		action: Type.Enum(LifecycleActions),
 
 	// addressee
 	recipientUnitId: Type.String(),
@@ -44,8 +44,10 @@ const documentSchemaForCreation = Type.Object({
 	functionCode: Type.String(),
 	functionCodeId: Type.String(),
 	sensitivity: Type.Enum(SensitivityLevel),
-	documentTypeId: Type.String(),
-});
+		documentTypeId: Type.String(),
+	},
+	{ additionalProperties: false },
+);
 
 const documentSchema = Type.Object({
 	id: Type.String({ minLength: 3 }),
@@ -108,11 +110,13 @@ const documentSchema = Type.Object({
 	updatedAt: Type.Union([Type.String({ format: "date-time" }), Type.Null()]),
 });
 
-const documentSchemaForSave = Type.Object({
-	actorId: Type.String(),
-	contentDelta: Type.Unknown(),
-	document: Type.Any(),
-});
+const documentSchemaForSave = Type.Object(
+	{
+		contentDelta: Type.Unknown(),
+		document: Type.Any(),
+	},
+	{ additionalProperties: false },
+);
 
 type DocumentSchemaType = Static<typeof documentSchema>;
 type DocumentIdSchemaType = Static<typeof documentIdSchema>;

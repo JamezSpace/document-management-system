@@ -4,6 +4,7 @@ import {
 	documentIdSchema,
 	type DocumentIdSchemaType,
 } from "../types/document.type.js";
+import { routePolicies } from "../../../../security/application/authorization.types.js";
 
 async function workspaceRoutes(
 	fastify: FastifyInstance,
@@ -14,23 +15,24 @@ async function workspaceRoutes(
 	const workspaceController = options.controller;
 
 	fastify.get(
-		"workspace/:documentId",
-		{ schema: { params: documentIdSchema } },
+		"/workspace/:documentId",
+		{
+			config: {
+				authorization: routePolicies.capability("document.view"),
+			},
+			schema: { params: documentIdSchema },
+		},
 		async (
 			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
 			reply: FastifyReply
 		) => {
-            const { uid } = request.user!;
-			const { id: documentId } = request.params;
+			const { documentId } = request.params;
 
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
-            
 			const result =
-				await workspaceController.resolveWorkspacePermissions(documentId, uid);
+				await workspaceController.resolveWorkspacePermissions(
+					documentId,
+					request.actor!.staffId,
+				);
 
 			return reply.code(200).send({
 				success: true,

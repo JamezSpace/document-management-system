@@ -4,11 +4,15 @@
   "description": "",
 	"main": "app.ts",
 	"scripts": {
-		"dev": "tsx --env-file=.env src/app.ts",
-		"test": "npm run test:workflow",
+		"dev": "tsx --env-file=.env src/server.ts",
+		"test": "pnpm run test:workflow && pnpm run test:access",
 		"test:build": "tsc --outDir .test-dist --declaration false --declarationMap false --sourceMap false",
-		"test:workflow": "npm run test:build && node --test .test-dist/test/workflow/ApproverResolverService.test.js .test-dist/test/workflow/WorkflowTask.test.js .test-dist/test/workflow/WorkflowTaskUseCases.test.js",
-		"typecheck": "tsc --noEmit --pretty false"
+		"test:access": "pnpm run test:build && node --test .test-dist/test/access/RoleAssignment.test.js .test-dist/test/access/ResolveStaffAuthority.test.js",
+		"test:workflow": "pnpm run test:build && node --test .test-dist/test/workflow/ApproverResolverService.test.js .test-dist/test/workflow/WorkflowTask.test.js .test-dist/test/workflow/WorkflowTaskUseCases.test.js",
+		"typecheck": "tsc --noEmit --pretty false",
+		"db:migrate": "tsx --env-file=.env scripts/db/migrate.ts",
+		"db:migrate:check": "tsx scripts/db/check-migrations.ts",
+		"db:seed:development": "tsx --env-file=.env scripts/db/seed-development.ts"
 	},
   "keywords": [],
   "author": "",

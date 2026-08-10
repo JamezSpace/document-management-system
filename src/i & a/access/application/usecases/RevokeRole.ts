@@ -1,52 +1,45 @@
-import { GlobalDomainErrors } from "../../../../shared/errors/enum/domain.enum.js";
+import type { TransactionManager } from "../../../../shared/application/port/TransactionManager.port.js";
+import { AccessDomainErrors } from "../../../../shared/errors/enum/domain.enum.js";
 import AccessDomainError from "../../domain/errors/AccessDomainError.js";
-import Role from "../../domain/role/Role.js";
+import type RoleAssignment from "../../domain/RoleAssignment.js";
 import type { AccessEventsPort } from "../ports/AccessEvents.port.js";
 import type { RoleAssignmentRepositoryPort } from "../ports/RoleAssignmentsRepository.port.js";
 
 class RevokeRole {
-	private readonly authorityEvents: AccessEventsPort;
-	private readonly roleAssignmentRepo: RoleAssignmentRepositoryPort;
-
 	constructor(
-		authorityEvents: AccessEventsPort,
-		accessRepo: RoleAssignmentRepositoryPort,
-	) {
-		this.authorityEvents = authorityEvents;
-		this.roleAssignmentRepo = accessRepo;
-	}
+		private readonly authorityEvents: AccessEventsPort,
+		private readonly roleAssignmentRepo: RoleAssignmentRepositoryPort,
+		private readonly transactionManager: TransactionManager,
+	) {}
 
 	async revokeRole(payload: {
-		staffId: string;
-		role: Role;
+		assignmentId: string;
 		revokedBy: string;
-	}) {
-		const { staffId, role, revokedBy } = payload;
-
-		const assignments =
-				await this.roleAssignmentRepo.findRoleAssignmentsByStaffId(
-					staffId,
-				),
-			activeAssignment = assignments.find(
-				(a) => a.role.name === role.name && a.isActive(),
+		revokedAt?: Date;
+	}): Promise<RoleAssignment> {
+		const assignment = await this.transactionManager.execute(async (tx) => {
+			const existing = await this.roleAssignmentRepo.findById(
+				payload.assignmentId,
+				tx,
+				{ forUpdate: true },
 			);
 
+			if (!existing) {
+				throw new AccessDomainError(AccessDomainErrors.ROLE_NOT_ACTIVE);
+			}
 
-		if (!activeAssignment) {
-			throw new AccessDomainError(GlobalDomainErrors.identity_authority.access.ROLE_NOT_ACTIVE);
-		}
+			existing.revoke(payload.revokedBy, payload.revokedAt ?? new Date());
+			await this.roleAssignmentRepo.revoke(existing, tx);
+			return existing;
+		});
 
-		// Close assignment (you may need a domain method instead)
-		activeAssignment.close(new Date());
+		await this.authorityEvents.roleRevoked({
+			staffId: assignment.staffId,
+			role: assignment.role,
+			revokedBy: payload.revokedBy,
+		});
 
-		const roleRevoked = await this.roleAssignmentRepo.save(activeAssignment);
-
-        if(roleRevoked)
-            await this.authorityEvents.roleRevoked({
-                staffId,
-                role,
-                revokedBy
-            });
+		return assignment;
 	}
 }
 

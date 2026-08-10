@@ -1,15 +1,13 @@
 import type { DomainErrorType } from "../../../../shared/errors/enum/domain.enum.js";
+import DomainError from "../../../../shared/errors/DomainError.error.js";
 
-class AccessDomainError extends Error {
-    readonly errorName: DomainErrorType
+class AccessDomainError extends DomainError {
+	readonly errorName: DomainErrorType;
 
-    constructor(name: DomainErrorType) {
-        super(name.codeName)
-
-        this.errorName = name
-
-        Object.setPrototypeOf(this, AccessDomainError.prototype);
-    }
+	constructor(name: DomainErrorType, message?: string) {
+		super(name, message ? { message } : {});
+		this.errorName = name;
+	}
 }
 
 export default AccessDomainError;

@@ -4,6 +4,9 @@ import {
 	staffIdSchema,
 	type StaffIdType,
 } from "../types/notifications.type.js";
+import { routePolicies } from "../../../security/application/authorization.types.js";
+import ApiError from "../../../shared/errors/NexusError.js";
+import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
 
 async function notificationRoutes(
 	fastify: FastifyInstance,
@@ -15,16 +18,18 @@ async function notificationRoutes(
 
 	fastify.get(
 		"/:sId",
-		{ schema: { params: staffIdSchema } },
+		{
+			config: { authorization: routePolicies.authenticatedSelf },
+			schema: { params: staffIdSchema },
+		},
 		async (request: FastifyRequest<{ Params: StaffIdType }>, reply) => {
-			const { uid } = request.user!;
 			const { sId: staffId } = request.params;
 
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
+			if (request.actor!.staffId !== staffId) {
+				throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
+					message: "Staff may only access their own notifications",
 				});
+			}
 
 			const notifications =
 				await notificationController.getStaffNotifications(staffId);

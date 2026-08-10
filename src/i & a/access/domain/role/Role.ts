@@ -22,7 +22,9 @@ class Role {
   }
 
   hasPermission(permission: Permission): boolean {
-    return this.permissions.has(permission);
+	return Array.from(this.permissions).some(
+		(existing) => existing.getCode() === permission.getCode(),
+	);
   }
 }
 
