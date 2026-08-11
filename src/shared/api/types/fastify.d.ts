@@ -2,7 +2,7 @@ import "fastify";
 import type {
 	ActorContext,
 	RouteAuthorizationPolicy,
-} from "../../../security/application/authorization.types.js";
+} from "../../../security/application/type/authorization.type.js";
 
 declare module "fastify" {
 	interface FastifyRequest {

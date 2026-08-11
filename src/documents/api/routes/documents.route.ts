@@ -14,15 +14,13 @@ import {
     type DocumentSchemaType,
     type DocumentSchemaTypeForCreation,
 } from "../types/document.type.js";
-import type { DocumentIdentityPort } from "../../../shared/application/port/intersubsystem/DocumentIdentity.port.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function documentRoutes(
 	fastify: FastifyInstance,
 	options: {
 		controller: DocumentController;
-        documentIdentity: DocumentIdentityPort;
 	},
 ) {
 	const documentController = options.controller;

@@ -1,4 +1,4 @@
-import type { AuthorizationScope } from "../../../../security/application/authorization.types.js";
+import type { AuthorizationScope } from "../../../../security/application/type/authorization.type.js";
 import type { IdGeneratorPort } from "../../../../shared/application/port/services/IdGenerator.port.js";
 import { AccessDomainErrors } from "../../../../shared/errors/enum/domain.enum.js";
 import type { TransactionContext } from "../../../../shared/infrastructure/persistence/primary/postgres.js";

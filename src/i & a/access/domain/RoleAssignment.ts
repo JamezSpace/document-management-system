@@ -1,5 +1,5 @@
 import { AccessDomainErrors } from "../../../shared/errors/enum/domain.enum.js";
-import type { AuthorizationScope } from "../../../security/application/authorization.types.js";
+import type { AuthorizationScope } from "../../../security/application/type/authorization.type.js";
 import AccessDomainError from "./errors/AccessDomainError.js";
 import type Role from "./role/Role.js";
 

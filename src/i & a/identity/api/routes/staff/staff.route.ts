@@ -4,13 +4,9 @@ import ApplicationError from "../../../../../shared/errors/ApplicationError.erro
 import { ApplicationErrorEnum } from "../../../../../shared/errors/enum/application.enum.js";
 import type StaffController from "../../controllers/staff/Staff.controller.js";
 import {
-    authProviderIdSchema,
-    createStaffSchema,
     editStaffSchema,
     staffIdSchema,
     unitIdSchema,
-    type AuthProviderIdType,
-    type CreateStaffType,
     type EditStaffType,
     type StaffIdType,
     type UnitIdType
@@ -23,34 +19,6 @@ async function staffRoutes(
 	options: { controller: StaffController },
 ) {
 	const staffController = options.controller;
-
-	// add a new staff - manual approach; register staff instead
-	fastify.post(
-		"/staff",
-		{
-			schema: { body: createStaffSchema },
-			config: {
-				authorization: routePolicies.capability(
-					IdentityCapabilities.STAFF_CREATE,
-				),
-			},
-		},
-		async (
-			request: FastifyRequest<{ Body: CreateStaffType }>,
-			reply: FastifyReply,
-		) => {
-			// extract information from request body
-			const payload = request.body;
-
-			// save data in database
-			const newStaff = await staffController.addNewStaff(payload);
-
-			return reply.code(201).send({
-				success: true,
-				newStaff,
-			});
-		},
-	);
 
 	// activate an accepted invite and create the corresponding staff record
 	fastify.post(
@@ -228,40 +196,6 @@ async function staffRoutes(
 				success: true,
 				message: "Staff deleted successfully",
 			});
-		},
-	);
-
-	// get staff via auth provider id
-	fastify.get(
-		"/staff/provider/:authProviderId",
-		{
-			schema: { params: authProviderIdSchema },
-			config: {
-				authorization: routePolicies.capability(
-					IdentityCapabilities.STAFF_VIEW,
-				),
-			},
-		},
-		async (
-			request: FastifyRequest<{ Params: AuthProviderIdType }>,
-			reply: FastifyReply,
-		) => {
-			const { authProviderId } = request.params;
-
-			const existingStaff =
-				await staffController.fetchExistingStaffByAuthProviderId(
-					authProviderId,
-				);
-
-			if (!existingStaff)
-				return reply.code(404).send({
-					success: true,
-				});
-			else
-				return reply.code(200).send({
-					success: true,
-					data: existingStaff,
-				});
 		},
 	);
 

@@ -10,16 +10,12 @@ import {
 	sessionIdSchema,
 	tokenIdSchema,
 	uploadOnboardingMediaSchema,
-	userSchemaForLogin,
-	userSchemaForSignup,
 	type EditOnboardingSessionType,
 	type InitOnboardingSessionType,
 	type InviteIdType,
 	type SessionIdType,
 	type TokenIdType,
 	type UploadOnboardingMediaType,
-	type UserLoginType,
-	type UserSignUpType,
 } from "../../types/user/user.type.js";
 import { InviteStatus } from "../../../domain/enum/staff.enum.js";
 import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
@@ -29,16 +25,6 @@ async function identityRoutes(
 	options: { controller: AuthenticationController },
 ) {
 	const authenticationController = options.controller;
-	const assertVerifiedAuthProvider = (
-		verifiedUid: string,
-		requestedAuthProviderId: string,
-	) => {
-		if (verifiedUid !== requestedAuthProviderId) {
-			throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
-				message: "The authenticated identity does not match the requested identity",
-			});
-		}
-	};
 
 	const resolveFilePayload = async (
 		file: unknown,
@@ -67,103 +53,6 @@ async function identityRoutes(
 			message: `Invalid file payload for ${fieldName}`,
 		});
 	};
-
-	// this is called to add a new user to the system
-	fastify.post(
-		"/register",
-		{
-			schema: { body: userSchemaForSignup },
-			config: { authorization: routePolicies.authenticatedIdentity },
-		},
-		async (
-			request: FastifyRequest<{ Body: UserSignUpType }>,
-			reply: FastifyReply,
-		) => {
-			// extract information from request body
-			const {
-				authProviderId,
-				firstName,
-				lastName,
-				middleName,
-				email,
-				phoneNum,
-				authProvider,
-			} = request.body;
-			assertVerifiedAuthProvider(request.user!.uid, authProviderId);
-
-			// save data in database
-			const userIdentity = await authenticationController.addNewUser({
-				authProviderId,
-				firstName,
-				lastName,
-				middleName,
-				email,
-				phoneNum,
-				authProvider,
-			});
-
-			return reply.code(201).send({
-				success: true,
-				user: userIdentity,
-			});
-		},
-	);
-
-	// this is called to activate a pending user
-	fastify.patch(
-		"/activate/:authProviderId",
-		{
-			schema: { params: userSchemaForLogin },
-			config: { authorization: routePolicies.authenticatedIdentity },
-		},
-		async (
-			request: FastifyRequest<{ Params: UserLoginType }>,
-			reply: FastifyReply,
-		) => {
-			// extract information from request body
-			const { authProviderId } = request.params;
-			assertVerifiedAuthProvider(request.user!.uid, authProviderId);
-
-			// call controller
-			const userIdentity =
-				await authenticationController.activatePendingUser(
-					authProviderId,
-				);
-
-			return reply.code(200).send({
-				success: true,
-				user: userIdentity,
-			});
-		},
-	);
-
-	// when user logs in
-	fastify.post(
-		"/login",
-		{
-			schema: { body: userSchemaForLogin },
-			config: { authorization: routePolicies.authenticatedIdentity },
-		},
-		async (
-			request: FastifyRequest<{ Body: UserLoginType }>,
-			reply: FastifyReply
-		) => {
-			const { uid: userId } = request.user!;
-			assertVerifiedAuthProvider(userId, request.body.authProviderId);
-
-			// get user identity from my database
-			const userIdentity =
-				await authenticationController.authenticate(userId);
-
-			return reply.code(200).send({
-				success: true,
-				user: {
-					id: userId,
-					userIdentity,
-				},
-			});
-		},
-	);
 
 	// fetch all users in the system
 	fastify.get(

@@ -1,4 +1,4 @@
-import type { ActorContext } from "../../../security/application/authorization.types.js";
+import type { ActorContext } from "../../../security/application/type/authorization.type.js";
 import type {
 	AuditEventFilters,
 	AuditEventRepositoryPort,

@@ -4,7 +4,7 @@ import {
 	documentIdSchema,
 	type DocumentIdSchemaType,
 } from "../types/document.type.js";
-import { routePolicies } from "../../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../../../documents/domain/enum/documentCapabilities.enum.js";
 
 async function workspaceRoutes(

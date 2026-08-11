@@ -204,7 +204,6 @@ export default async function DocumentSubsystem(
 
 	await fastify.register(documentRoutes, {
 		controller: documentController,
-        documentIdentity: documentIdentityAdapter
 	});
 
 	await fastify.register(correspondenceSubjectRoutes, {

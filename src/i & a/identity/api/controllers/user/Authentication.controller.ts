@@ -1,45 +1,15 @@
-import type ActivatePendingUserUseCase from "../../../application/usecases/user/ActivatePendingUser.usercase.js";
-import type AddNewUserUseCase from "../../../application/usecases/user/AddNewUser.usecase.js";
-import type AuthenticateUserUseCase from "../../../application/usecases/user/AuthenticateUser.usecase.js";
 import type GetAllUsersUseCase from "../../../application/usecases/user/GetAllUsers.usecase.js";
 import type OnboardingInviteUseCase from "../../../application/usecases/user/invites/OnboardInvite.usecase.js";
 import type {
     EditOnboardingSessionType,
     InitOnboardingSessionType,
-    UserSignUpType,
 } from "../../types/user/user.type.js";
 
 class AuthenticationController {
 	constructor(
 		private readonly onboardInviteUseCase: OnboardingInviteUseCase,
-		private readonly authenticateUserUseCase: AuthenticateUserUseCase,
-		private readonly addNewUserUseCase: AddNewUserUseCase,
-		private readonly activatePendingUserUseCase: ActivatePendingUserUseCase,
 		private readonly getAllUsersUseCase: GetAllUsersUseCase,
 	) {}
-
-	async authenticate(uid: string) {
-		const userIdentity =
-			await this.authenticateUserUseCase.authenticateUser(uid);
-
-		return userIdentity;
-	}
-
-    // manual disjointed approach (not for frontend). Use registerNewStaff of StaffController instead
-	async addNewUser(payload: UserSignUpType) {
-		const userIdentity = await this.addNewUserUseCase.addNewUser(payload);
-
-		return userIdentity;
-	}
-
-	async activatePendingUser(authProviderId: string) {
-		const userIdentity =
-			await this.activatePendingUserUseCase.activatePendingUser(
-				authProviderId,
-			);
-
-		return userIdentity;
-	}
 
 	async getAllUsers() {
 		const users = await this.getAllUsersUseCase.getAllUsers();

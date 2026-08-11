@@ -1,4 +1,4 @@
-import type { AuthorizationScope } from "../../../../security/application/authorization.types.js";
+import type { AuthorizationScope } from "../../../../security/application/type/authorization.type.js";
 import type AssignRoleUseCase from "../../application/usecases/AssignRole.usecase.js";
 import type DelegateRole from "../../application/usecases/DelegateRole.usecase.js";
 import type ListRoleAssignmentsUseCase from "../../application/usecases/ListRoleAssignments.usecase.js";

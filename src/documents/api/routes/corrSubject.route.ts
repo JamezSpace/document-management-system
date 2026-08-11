@@ -4,7 +4,7 @@ import {
 	corrSubjectSchema,
 	type CorrSubjectType,
 } from "../types/corrSubject.type.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function correspondenceSubjectRoutes(

@@ -1,5 +1,5 @@
 import type { PostgresDb } from "@fastify/postgres";
-import type { AuthorizationScope } from "../../../../security/application/authorization.types.js";
+import type { AuthorizationScope } from "../../../../security/application/type/authorization.type.js";
 import InfrastructureError from "../../../../shared/errors/InfrastructureError.error.js";
 import {
 	Category,

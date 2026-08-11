@@ -6,7 +6,7 @@ import {
 	type DocTypeCreationType,
     type DocTypeIdSchemaType,
 } from "../types/docType.type.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function documentTypeRoutes(

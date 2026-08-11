@@ -1,4 +1,4 @@
-import type { AuthorizationScope } from "../../../../security/application/authorization.types.js";
+import type { AuthorizationScope } from "../../../../security/application/type/authorization.type.js";
 import type RoleAssignment from "../../domain/RoleAssignment.js";
 import type { RoleAssignmentSource } from "../../domain/RoleAssignment.js";
 import type { RoleAssignmentRepositoryPort } from "../ports/RoleAssignmentsRepository.port.js";

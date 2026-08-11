@@ -1,20 +1,15 @@
 import type ResolveStaffAuthorityUseCase from "../../../../access/application/usecases/ResolveStaffAuthority.usecase.js";
 import type ActivationOrchestratorUseCase from "../../../application/usecases/staff/activateStaff/ActivationOrchestrator.usecase.js";
-import type AddNewStaffUseCase from "../../../application/usecases/staff/AddNewStaff.usecase.js";
 import type CreateStaffViaInviteUseCase from "../../../application/usecases/staff/CreateStaffViaInvite.usecase.js";
 import type DeleteStaffUseCase from "../../../application/usecases/staff/DeleteStaff.usecase.js";
 import type EditExistingStaffUseCase from "../../../application/usecases/staff/EditExistingStaff.usecase.js";
 import type FetchStaffRecordUsecase from "../../../application/usecases/staff/FetchStaffRecord.usecase.js";
 import type GetAllStaffUseCase from "../../../application/usecases/staff/GetAllStaff.usecase.js";
 import type Staff from "../../../domain/entities/staff/Staff.js";
-import type {
-    CreateStaffType
-} from "../../types/staff/staff.type.js";
 
 class StaffController {
 	constructor(
 		private readonly getAllStaffUseCase: GetAllStaffUseCase,
-		private readonly addNewStaffUseCase: AddNewStaffUseCase,
 		private readonly createStaffViaInviteUseCase: CreateStaffViaInviteUseCase,
 		private readonly staffActivationUseCase: ActivationOrchestratorUseCase,
 		private readonly editExistingStaffUseCase: EditExistingStaffUseCase,
@@ -22,18 +17,6 @@ class StaffController {
 		private readonly fetchStaffUseCase: FetchStaffRecordUsecase,
 		private readonly resolveStaffAuthorityUseCase: ResolveStaffAuthorityUseCase,
 	) {}
-
-	// manual disjointed approach (not for frontend). Use registerNewStaff instead
-	async addNewStaff(payload: CreateStaffType) {
-		const { activatedAt, ...payloadWithoutDate } = payload;
-
-		const newStaff = await this.addNewStaffUseCase.execute({
-			activatedAt: new Date(activatedAt),
-			...payloadWithoutDate,
-		});
-
-		return newStaff;
-	}
 
 	async createStaffViaInvite(inviteId: string, activatorId: string) {
 		const result = await this.createStaffViaInviteUseCase.execute(

@@ -2,7 +2,7 @@ import type {
 	ActorContext,
 	ActorGrant,
 	ResourceScope,
-} from "./authorization.types.js";
+} from "../type/authorization.type.js";
 
 class AuthorizationService {
 	hasCapability(

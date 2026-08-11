@@ -4,7 +4,7 @@ import {
 	staffIdSchema,
 	type StaffIdType,
 } from "../types/notifications.type.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import ApiError from "../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
 

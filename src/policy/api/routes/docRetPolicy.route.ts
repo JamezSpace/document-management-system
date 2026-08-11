@@ -4,7 +4,7 @@ import {
     createDocumentRetentionPolicySchema,
     type CreateDocumentRetentionPolicyType,
 } from "../types/docRetPolicy.type.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { RecordsCapabilities } from "../../../records/domain/enum/recordsCapabilities.enum.js";
 
 async function documentRetentionPolicyRoutes(

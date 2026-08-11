@@ -16,7 +16,7 @@ import {
 } from "../types/workflow.types.js";
 import ApiError from "../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
-import { routePolicies } from "../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../../documents/domain/enum/documentCapabilities.enum.js";
 
 async function workflowRoutes(
