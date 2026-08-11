@@ -11,7 +11,7 @@ import type {
 	RegistryEntry,
 	RegistryIntake,
 } from "../domain/registry.models.js";
-import { RegistryCapabilities } from "../domain/registry.capabilities.js";
+import { RegistryCapabilities } from "../domain/enum/registryCapabilities.enum.js";
 import type { RegistryAuditPort } from "./ports/RegistryAudit.port.js";
 import type { RegistryRepositoryPort, RegistryScopeFilter } from "./ports/RegistryRepository.port.js";
 import RegistryPolicyEvaluator from "./RegistryPolicyEvaluator.js";

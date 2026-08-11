@@ -3,7 +3,7 @@ import { ApplicationErrorEnum } from "../../shared/errors/enum/application.enum.
 import AuthorizationService from "../../security/application/AuthorizationService.js";
 import type { ActorContext } from "../../security/application/authorization.types.js";
 import type { DigitizationJob, RegistryEntry, RegistryIntake } from "../domain/registry.models.js";
-import { RegistryCapabilities } from "../domain/registry.capabilities.js";
+import { RegistryCapabilities } from "../domain/enum/registryCapabilities.enum.js";
 
 type RegistryResource =
 	| { kind: "intake"; value: RegistryIntake }

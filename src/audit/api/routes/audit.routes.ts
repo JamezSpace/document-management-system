@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { AuditCapabilities } from "../../domain/enum/auditCapabilities.enum.js";
 import type ListAuditEventsUseCase from "../../application/usecases/ListAuditEvents.usecase.js";
 import {
 	auditEventQuerySchema,
@@ -14,7 +15,7 @@ async function auditRoutes(
 		"/events",
 		{
 			config: {
-				authorization: routePolicies.capability("audit.event.view"),
+				authorization: routePolicies.capability(AuditCapabilities.EVENT_VIEW),
 			},
 			schema: { querystring: auditEventQuerySchema },
 		},

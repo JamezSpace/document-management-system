@@ -5,6 +5,7 @@ import {
 	type DocumentIdSchemaType,
 } from "../types/document.type.js";
 import { routePolicies } from "../../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../../../documents/domain/enum/documentCapabilities.enum.js";
 
 async function workspaceRoutes(
 	fastify: FastifyInstance,
@@ -18,7 +19,7 @@ async function workspaceRoutes(
 		"/workspace/:documentId",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 			schema: { params: documentIdSchema },
 		},

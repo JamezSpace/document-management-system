@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type DesignationController from "../../controllers/office/Designation.controller.js";
 import {
     createDesignationSchema,
@@ -6,6 +7,7 @@ import {
     type CreateDesignationType,
     type EditDesignationType,
 } from "../../types/office/office.type.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function officeDesignationRoutes(
 	fastify: FastifyInstance,
@@ -18,6 +20,7 @@ async function officeDesignationRoutes(
 	// this gets all designations across all offices and units
 	fastify.get(
 		"/offices/designations",
+		{ config: { authorization: routePolicies.authenticatedSelf } },
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			const officeDesignations =
 				await designationController.getAllDesignations();
@@ -32,7 +35,10 @@ async function officeDesignationRoutes(
 	// this gets all designations within an office
 	fastify.get(
 		"/office/:officeId/designations",
-		{ schema: { params: editDesignationSchema } },
+		{
+			schema: { params: editDesignationSchema },
+			config: { authorization: routePolicies.authenticatedSelf },
+		},
 		async (
 			request: FastifyRequest<{ Params: EditDesignationType }>,
 			reply: FastifyReply,
@@ -56,7 +62,14 @@ async function officeDesignationRoutes(
 
 	fastify.post(
 		"/office/designation",
-		{ schema: { body: createDesignationSchema } },
+		{
+			schema: { body: createDesignationSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.ORGANIZATION_MANAGE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Body: CreateDesignationType }>,
 			reply: FastifyReply,

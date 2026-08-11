@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { routePolicies } from "../../../../security/application/authorization.types.js";
+import { RoleCapabilities } from "../../domain/enum/roleCapabilities.enum.js";
 import type RoleAssignmentController from "../controllers/RoleAssignment.controller.js";
 import {
 	assignRoleSchema,
@@ -21,7 +22,7 @@ async function roleAssignmentRoutes(
 	fastify.post(
 		"/role-assignments",
 		{
-			config: { authorization: routePolicies.capability("role.assign") },
+			config: { authorization: routePolicies.capability(RoleCapabilities.ASSIGN) },
 			schema: { body: assignRoleSchema },
 		},
 		async (
@@ -39,7 +40,7 @@ async function roleAssignmentRoutes(
 	fastify.get(
 		"/role-assignments/staff/:staffId",
 		{
-			config: { authorization: routePolicies.capability("role.view") },
+			config: { authorization: routePolicies.capability(RoleCapabilities.VIEW) },
 			schema: { params: roleAssignmentStaffIdSchema },
 		},
 		async (
@@ -56,7 +57,7 @@ async function roleAssignmentRoutes(
 	fastify.post(
 		"/role-assignments/:assignmentId/delegations",
 		{
-			config: { authorization: routePolicies.capability("role.assign") },
+			config: { authorization: routePolicies.capability(RoleCapabilities.ASSIGN) },
 			schema: {
 				params: roleAssignmentIdSchema,
 				body: delegateRoleSchema,
@@ -81,7 +82,7 @@ async function roleAssignmentRoutes(
 	fastify.post(
 		"/role-assignments/:assignmentId/revoke",
 		{
-			config: { authorization: routePolicies.capability("role.remove") },
+			config: { authorization: routePolicies.capability(RoleCapabilities.REMOVE) },
 			schema: { params: roleAssignmentIdSchema },
 		},
 		async (

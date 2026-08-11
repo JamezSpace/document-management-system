@@ -5,6 +5,7 @@ import {
 	type BussFunctionType,
 } from "../types/bussFunction.type.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function businessFunctionRoutes(
 	fastify: FastifyInstance,
@@ -19,7 +20,7 @@ async function businessFunctionRoutes(
 		{
 			config: {
 				authorization: routePolicies.capability(
-					"document.classification.manage",
+					DocumentCapabilities.CLASSIFICATION_MANAGE,
 				),
 			},
 			schema: { body: bussFunctionSchema },
@@ -46,7 +47,7 @@ async function businessFunctionRoutes(
 		"/functions",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 		},
 		async (request: FastifyRequest, reply: FastifyReply) => {

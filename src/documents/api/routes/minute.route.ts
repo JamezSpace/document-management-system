@@ -11,6 +11,7 @@ import {
     type MinuteSchemaForCreationType,
 } from "../types/minute.type.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function minuteRoutes(
 	fastify: FastifyInstance,
@@ -23,7 +24,7 @@ async function minuteRoutes(
 		"/documents/:documentId/minutes",
 		{
 			config: {
-				authorization: routePolicies.capability("document.route"),
+				authorization: routePolicies.capability(DocumentCapabilities.ROUTE),
 			},
 			schema: { params: documentIdSchema, body: minuteSchemaForCreation },
 		},
@@ -54,7 +55,7 @@ async function minuteRoutes(
 		"/documents/:documentId/minutes",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 			schema: { params: documentIdSchema },
 		},
@@ -79,7 +80,7 @@ async function minuteRoutes(
 		"/documents/:documentId/minutes/:minuteId",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 			schema: { params: documentMinuteParamsSchema },
 		},

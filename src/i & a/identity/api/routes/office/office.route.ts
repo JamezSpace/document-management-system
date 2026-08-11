@@ -1,10 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type OfficeController from "../../controllers/office/Office.controller.js";
 import {
 	createOfficeSchema,
 	type CreateOfficeType,
 } from "../../types/office/office.type.js";
 import { unitIdSchema, type UnitIdType } from "../../types/staff/staff.type.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function officeRoutes(
 	fastify: FastifyInstance,
@@ -16,7 +18,10 @@ async function officeRoutes(
 
 	fastify.get(
 		"/:unitId/offices",
-		{ schema: { params: unitIdSchema } },
+		{
+			schema: { params: unitIdSchema },
+			config: { authorization: routePolicies.authenticatedSelf },
+		},
 		async (
 			request: FastifyRequest<{ Params: UnitIdType }>,
 			reply: FastifyReply,
@@ -34,6 +39,7 @@ async function officeRoutes(
 
 	fastify.get(
 		"/offices",
+		{ config: { authorization: routePolicies.authenticatedSelf } },
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			const offices = await officeController.getAllOffices();
 
@@ -46,7 +52,14 @@ async function officeRoutes(
 
 	fastify.post(
 		"/office",
-		{ schema: { body: createOfficeSchema } },
+		{
+			schema: { body: createOfficeSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.ORGANIZATION_MANAGE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Body: CreateOfficeType }>,
 			reply: FastifyReply,

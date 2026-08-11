@@ -39,11 +39,13 @@ interface ActorResolution {
 
 type RouteAuthorizationPolicy =
 	| { kind: "public" }
+	| { kind: "authenticated-identity" }
 	| { kind: "authenticated-self" }
 	| { kind: "capability"; capability: string };
 
 const routePolicies = {
 	public: { kind: "public" } as const,
+	authenticatedIdentity: { kind: "authenticated-identity" } as const,
 	authenticatedSelf: { kind: "authenticated-self" } as const,
 	capability: (capability: string): RouteAuthorizationPolicy => ({
 		kind: "capability",

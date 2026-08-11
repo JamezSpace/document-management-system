@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import ApiError from "../../../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../../../shared/errors/enum/api.enum.js";
 import AuthenticationController from "../../controllers/user/Authentication.controller.js";
@@ -21,12 +22,23 @@ import {
 	type UserSignUpType,
 } from "../../types/user/user.type.js";
 import { InviteStatus } from "../../../domain/enum/staff.enum.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function identityRoutes(
 	fastify: FastifyInstance,
 	options: { controller: AuthenticationController },
 ) {
 	const authenticationController = options.controller;
+	const assertVerifiedAuthProvider = (
+		verifiedUid: string,
+		requestedAuthProviderId: string,
+	) => {
+		if (verifiedUid !== requestedAuthProviderId) {
+			throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
+				message: "The authenticated identity does not match the requested identity",
+			});
+		}
+	};
 
 	const resolveFilePayload = async (
 		file: unknown,
@@ -59,7 +71,10 @@ async function identityRoutes(
 	// this is called to add a new user to the system
 	fastify.post(
 		"/register",
-		{ schema: { body: userSchemaForSignup } },
+		{
+			schema: { body: userSchemaForSignup },
+			config: { authorization: routePolicies.authenticatedIdentity },
+		},
 		async (
 			request: FastifyRequest<{ Body: UserSignUpType }>,
 			reply: FastifyReply,
@@ -74,6 +89,7 @@ async function identityRoutes(
 				phoneNum,
 				authProvider,
 			} = request.body;
+			assertVerifiedAuthProvider(request.user!.uid, authProviderId);
 
 			// save data in database
 			const userIdentity = await authenticationController.addNewUser({
@@ -96,13 +112,17 @@ async function identityRoutes(
 	// this is called to activate a pending user
 	fastify.patch(
 		"/activate/:authProviderId",
-		{ schema: { params: userSchemaForLogin } },
+		{
+			schema: { params: userSchemaForLogin },
+			config: { authorization: routePolicies.authenticatedIdentity },
+		},
 		async (
 			request: FastifyRequest<{ Params: UserLoginType }>,
 			reply: FastifyReply,
 		) => {
 			// extract information from request body
 			const { authProviderId } = request.params;
+			assertVerifiedAuthProvider(request.user!.uid, authProviderId);
 
 			// call controller
 			const userIdentity =
@@ -120,12 +140,16 @@ async function identityRoutes(
 	// when user logs in
 	fastify.post(
 		"/login",
-		{ schema: { body: userSchemaForLogin } },
+		{
+			schema: { body: userSchemaForLogin },
+			config: { authorization: routePolicies.authenticatedIdentity },
+		},
 		async (
 			request: FastifyRequest<{ Body: UserLoginType }>,
 			reply: FastifyReply
 		) => {
-			const userId = request.body.authProviderId;
+			const { uid: userId } = request.user!;
+			assertVerifiedAuthProvider(userId, request.body.authProviderId);
 
 			// get user identity from my database
 			const userIdentity =
@@ -144,6 +168,13 @@ async function identityRoutes(
 	// fetch all users in the system
 	fastify.get(
 		"/users",
+		{
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_LIST,
+				),
+			},
+		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			const { uid } = request.user!;
 
@@ -165,7 +196,10 @@ async function identityRoutes(
 	// fetch entity that is onboarding
 	fastify.get(
 		"/entity/:token",
-		{ schema: { params: tokenIdSchema } },
+		{
+			schema: { params: tokenIdSchema },
+			config: { authorization: routePolicies.public },
+		},
 		async (
 			request: FastifyRequest<{ Params: TokenIdType }>,
 			reply: FastifyReply,
@@ -200,10 +234,14 @@ async function identityRoutes(
 		},
 	);
 
+	// TODO: replace public onboarding session access with an invite-token-bound policy.
 	// get an onboarding session
 	fastify.get(
 		"/invite/:inviteId/onboarding/session",
-		{ schema: { params: inviteIdSchema } },
+		{
+			schema: { params: inviteIdSchema },
+			config: { authorization: routePolicies.public },
+		},
 		async (
 			request: FastifyRequest<{ Params: InviteIdType }>,
 			reply: FastifyReply,
@@ -223,6 +261,13 @@ async function identityRoutes(
     // get all onboarding sessions
     fastify.get(
 		"/invites/onboarding/sessions",
+		{
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_PENDING_ACTIVATION_LIST,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest,
 			reply: FastifyReply,
@@ -248,7 +293,10 @@ async function identityRoutes(
 	// init an onboarding session
 	fastify.post(
 		"/invite/onboarding/session",
-		{ schema: { body: initOnboardingSessionSchema } },
+		{
+			schema: { body: initOnboardingSessionSchema },
+			config: { authorization: routePolicies.public },
+		},
 		async (
 			request: FastifyRequest<{ Body: InitOnboardingSessionType }>,
 			reply: FastifyReply,
@@ -273,6 +321,7 @@ async function identityRoutes(
 				params: sessionIdSchema,
 				body: editOnboardingSessionSchema,
 			},
+			config: { authorization: routePolicies.public },
 		},
 		async (
 			request: FastifyRequest<{
@@ -308,6 +357,7 @@ async function identityRoutes(
 				params: sessionIdSchema,
 				body: uploadOnboardingMediaSchema,
 			},
+			config: { authorization: routePolicies.public },
 		},
 		async (
 			request: FastifyRequest<{
@@ -366,6 +416,7 @@ async function identityRoutes(
 				params: sessionIdSchema,
 				body: inviteIdSchema,
 			},
+			config: { authorization: routePolicies.public },
 		},
 		async (
 			request: FastifyRequest<{

@@ -4,6 +4,7 @@ import ApplicationError from "../../../../../../shared/errors/ApplicationError.e
 import { ApplicationErrorEnum } from "../../../../../../shared/errors/enum/application.enum.js";
 import type AssignOfficialRoleUseCase from "../../../../../access/application/usecases/AssignOfficialRole.js";
 import StaffClassification from "../../../../domain/entities/staff/StaffClassification.js";
+import { OnboardingSessionStatus } from "../../../../domain/enum/onboardingSessionStatus.enum.js";
 import { Status } from "../../../../domain/enum/staff.enum.js";
 import type { StaffEventsPort } from "../../../ports/events/staff/StaffEvent.port.js";
 import type { StaffMediaRepositoryPort } from "../../../ports/repos/entities/media/StaffMediaRepository.port.js";
@@ -38,12 +39,30 @@ class ActivateStaffUseCase {
                 message: `Staff with id ${staffId} not found.`,
 			});
 		}
+
+		if (staff.status !== Status.PENDING) {
+			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+				message: "Only a pending staff account can be activated.",
+			});
+		}
         
         const session = await this.sessionRepo.findSessionByInviteId(inviteId);
         
 		if (!session) {
 			throw new ApplicationError(ApplicationErrorEnum.SESSION_NOT_FOUND, {
 				message: `Session with invite id ${inviteId} not found.`,
+			});
+		}
+
+		if (
+			session.status !== OnboardingSessionStatus.COMPLETED ||
+			!session.primaryData ||
+			session.primaryData.staffId !== staff.staffNumber ||
+			!session.profilePictureMediaId ||
+			!session.signatureMediaId
+		) {
+			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+				message: "The completed onboarding session does not belong to this staff account.",
 			});
 		}
 

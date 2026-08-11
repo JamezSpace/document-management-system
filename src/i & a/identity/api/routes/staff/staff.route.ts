@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { routePolicies } from "../../../../../security/application/authorization.types.js";
+import ApplicationError from "../../../../../shared/errors/ApplicationError.error.js";
+import { ApplicationErrorEnum } from "../../../../../shared/errors/enum/application.enum.js";
 import type StaffController from "../../controllers/staff/Staff.controller.js";
 import {
     authProviderIdSchema,
@@ -14,6 +16,7 @@ import {
     type UnitIdType
 } from "../../types/staff/staff.type.js";
 import { inviteIdSchema, type InviteIdType } from "../../types/user/user.type.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function staffRoutes(
 	fastify: FastifyInstance,
@@ -24,7 +27,14 @@ async function staffRoutes(
 	// add a new staff - manual approach; register staff instead
 	fastify.post(
 		"/staff",
-		{ schema: { body: createStaffSchema } },
+		{
+			schema: { body: createStaffSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_CREATE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Body: CreateStaffType }>,
 			reply: FastifyReply,
@@ -45,23 +55,23 @@ async function staffRoutes(
 	// activate an accepted invite and create the corresponding staff record
 	fastify.post(
 		"/staff/invite",
-		{ schema: { body: inviteIdSchema } },
+		{
+			schema: { body: inviteIdSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_ACTIVATE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Body: InviteIdType }>,
 			reply: FastifyReply,
 		) => {
-			const { uid } = request.user!;
 			const { inviteId } = request.body;
-
-			if (!uid)
-				return reply.code(401).send({
-					success: true,
-					message: "No uid extracted from access token",
-				});
 
 			const activatedStaff = await staffController.createStaffViaInvite(
 				inviteId,
-				uid,
+				request.actor!.staffId,
 			);
 
 			return reply.code(201).send({
@@ -74,7 +84,10 @@ async function staffRoutes(
 	// activate the pending staff record after password reset / account setup
 	fastify.patch(
 		"/staff/:staffId/activate",
-		{ schema: { params: staffIdSchema, body: inviteIdSchema } },
+		{
+			schema: { params: staffIdSchema, body: inviteIdSchema },
+			config: { authorization: routePolicies.authenticatedIdentity },
+		},
 		async (
 			request: FastifyRequest<{ Params: StaffIdType, Body: InviteIdType }>,
 			reply: FastifyReply,
@@ -85,6 +98,20 @@ async function staffRoutes(
             // adding the precenig tag removed prior
             const staffId = `STAFF-${sId}`
             const inviteId = `INVITE-${iId}`
+			const authenticatedStaff =
+				await staffController.fetchExistingStaffByAuthProviderId(
+					request.user!.uid,
+				);
+
+			if (authenticatedStaff?.getStaffId() !== staffId) {
+				throw new ApplicationError(
+					ApplicationErrorEnum.USER_NOT_AUTHORIZED,
+					{
+						message:
+							"The authenticated identity cannot activate this staff record",
+					},
+				);
+			}
 
 			const activatedStaff = await staffController.activateStaff(staffId, inviteId);
 
@@ -119,7 +146,14 @@ async function staffRoutes(
 	// update an existing staff
 	fastify.patch(
 		"/staff/:staffId",
-		{ schema: { params: staffIdSchema, body: editStaffSchema } },
+		{
+			schema: { params: staffIdSchema, body: editStaffSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_UPDATE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{
 				Params: StaffIdType;
@@ -147,7 +181,14 @@ async function staffRoutes(
 	// get a specific staff member
 	fastify.get(
 		"/staff/:staffId",
-		{ schema: { params: staffIdSchema } },
+		{
+			schema: { params: staffIdSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_VIEW,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Params: StaffIdType }>,
 			reply: FastifyReply,
@@ -167,7 +208,14 @@ async function staffRoutes(
 	// delete a staff member
 	fastify.delete(
 		"/staff/:staffId",
-		{ schema: { params: staffIdSchema } },
+		{
+			schema: { params: staffIdSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_DEACTIVATE,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Params: StaffIdType }>,
 			reply: FastifyReply,
@@ -186,7 +234,14 @@ async function staffRoutes(
 	// get staff via auth provider id
 	fastify.get(
 		"/staff/provider/:authProviderId",
-		{ schema: { params: authProviderIdSchema } },
+		{
+			schema: { params: authProviderIdSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_VIEW,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Params: AuthProviderIdType }>,
 			reply: FastifyReply,
@@ -213,6 +268,13 @@ async function staffRoutes(
     // get all staff - hr usage
     fastify.get(
 		"/staff",
+		{
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_LIST,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest,
 			reply: FastifyReply,
@@ -238,7 +300,10 @@ async function staffRoutes(
 	// this retrieves all staff members in a unit
 	fastify.get(
 		"/:unitId/staff-members",
-		{ schema: { params: unitIdSchema } },
+		{
+			schema: { params: unitIdSchema },
+			config: { authorization: routePolicies.authenticatedSelf },
+		},
 		async (
 			request: FastifyRequest<{ Params: UnitIdType }>,
 			reply: FastifyReply,

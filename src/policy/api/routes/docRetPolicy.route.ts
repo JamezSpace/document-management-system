@@ -5,7 +5,7 @@ import {
     type CreateDocumentRetentionPolicyType,
 } from "../types/docRetPolicy.type.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
-import { RecordsCapabilities } from "../../../records/domain/records.capabilities.js";
+import { RecordsCapabilities } from "../../../records/domain/enum/recordsCapabilities.enum.js";
 
 async function documentRetentionPolicyRoutes(
     fastify: FastifyInstance,

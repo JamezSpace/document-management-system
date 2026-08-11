@@ -1,6 +1,17 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { createStaffClassificationSchema, type CreateStaffClassificationType, classificationIdSchema, editStaffClassificationSchema, type ClassificationIdType, type EditStaffClassificationType, type CloseStaffClassificationType, closeStaffClassificationSchema } from "../../types/staff/staffClass.type.js";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type StaffClassificationController from "../../controllers/staff/StaffClassification.controller.js";
+import {
+	classificationIdSchema,
+	closeStaffClassificationSchema,
+	createStaffClassificationSchema,
+	editStaffClassificationSchema,
+	type ClassificationIdType,
+	type CloseStaffClassificationType,
+	type CreateStaffClassificationType,
+	type EditStaffClassificationType,
+} from "../../types/staff/staffClass.type.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function staffClassificationRoutes(
 	fastify: FastifyInstance,
@@ -10,7 +21,14 @@ async function staffClassificationRoutes(
 
 	fastify.post(
 		"/staff/classification",
-		{ schema: { body: createStaffClassificationSchema } },
+		{
+			schema: { body: createStaffClassificationSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.CLASSIFICATION_ASSIGN,
+				),
+			},
+		},
 		async (
 			request: FastifyRequest<{ Body: CreateStaffClassificationType }>,
 			reply: FastifyReply,
@@ -40,6 +58,11 @@ async function staffClassificationRoutes(
 				params: classificationIdSchema,
 				body: editStaffClassificationSchema,
 			},
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.CLASSIFICATION_UPDATE,
+				),
+			},
 		},
 		async (
 			request: FastifyRequest<{
@@ -67,7 +90,17 @@ async function staffClassificationRoutes(
     // call this to close a staff classification
     fastify.patch(
         "/staff/classification/:classificationId/close",
-        {schema: {params: classificationIdSchema, body: closeStaffClassificationSchema}},
+		{
+			schema: {
+				params: classificationIdSchema,
+				body: closeStaffClassificationSchema,
+			},
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.CLASSIFICATION_UPDATE,
+				),
+			},
+		},
         async(request: FastifyRequest<{Params: ClassificationIdType, Body: CloseStaffClassificationType}>, reply: FastifyReply) => {
             const { classificationId } = request.params
             const {effectiveTo: closureDate} = request.body;

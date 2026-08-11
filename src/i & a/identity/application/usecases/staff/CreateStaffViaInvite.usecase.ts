@@ -44,7 +44,7 @@ class CreateStaffViaInviteUseCase {
 		if (
 			!invite ||
 			!onboardingSession ||
-			(invite.status !== InviteStatus.ACCEPTED &&
+			(invite.status !== InviteStatus.ACCEPTED ||
 				onboardingSession.status !== OnboardingSessionStatus.COMPLETED)
 		)
 			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {

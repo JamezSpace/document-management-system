@@ -1,10 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import ApiError from "../../../../../shared/errors/NexusError.js";
-import { ApiErrorEnum } from "../../../../../shared/errors/enum/api.enum.js";
-import AuthenticationController from "../../controllers/user/Authentication.controller.js";
-import { InviteStatus } from "../../../domain/enum/staff.enum.js";
+import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type InvitesController from "../../controllers/user/Invites.controller.js";
 import { initInviteSchema, inviteIdSchema, type InitInviteType, type InviteIdType } from "../../types/user/user.type.js";
+import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
 
 async function inviteRoutes(
 	fastify: FastifyInstance,
@@ -15,6 +13,13 @@ async function inviteRoutes(
     // see all invites
 	fastify.get(
 		"/invites",
+		{
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_PENDING_ACTIVATION_LIST,
+				),
+			},
+		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			const { uid } = request.user!;
 
@@ -34,7 +39,14 @@ async function inviteRoutes(
 	);
 
     // create an invite
-    fastify.post("/invite", {schema: {body: initInviteSchema}}, async (request: FastifyRequest<{Body: InitInviteType}>, reply: FastifyReply) => {
+    fastify.post("/invite", {
+		schema: { body: initInviteSchema },
+		config: {
+			authorization: routePolicies.capability(
+				IdentityCapabilities.STAFF_CREATE,
+			),
+		},
+	}, async (request: FastifyRequest<{Body: InitInviteType}>, reply: FastifyReply) => {
             // extract information from request body
             const payload = request.body;
     
@@ -49,7 +61,14 @@ async function inviteRoutes(
     // nudge an invite
     fastify.post(
         "/invite/nudge/:inviteId",
-        { schema: {params: initInviteSchema} },
+		{
+			schema: { params: inviteIdSchema },
+			config: {
+				authorization: routePolicies.capability(
+					IdentityCapabilities.STAFF_UPDATE,
+				),
+			},
+		},
         async(request: FastifyRequest<{Params: InviteIdType}>, reply: FastifyReply) => {
             const { uid } = request.user!;
             const { inviteId } = request.params;

@@ -14,6 +14,10 @@ import type {
 } from "../application/authorization.types.js";
 
 function assertRouteHasAuthorizationPolicy(route: RouteOptions): void {
+	// CORS owns the generated preflight route, so it has no application policy.
+	const methods = Array.isArray(route.method) ? route.method : [route.method];
+	if (methods.every((method) => method === "OPTIONS")) return;
+
 	const policy = route.config?.authorization;
 
 	if (!policy) {
@@ -44,6 +48,8 @@ function registerAuthorizationHooks(
 		const token = extractBearerToken(request);
 		const authProviderId = await dependencies.authService.verifyIdToken(token);
 		request.user = { uid: authProviderId };
+
+		if (policy.kind === "authenticated-identity") return;
 
 		const resolution =
 			await dependencies.actorRepository.resolveByAuthProviderId(

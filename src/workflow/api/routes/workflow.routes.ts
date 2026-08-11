@@ -17,6 +17,7 @@ import {
 import ApiError from "../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../shared/errors/enum/api.enum.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../../documents/domain/enum/documentCapabilities.enum.js";
 
 async function workflowRoutes(
 	fastify: FastifyInstance,
@@ -28,7 +29,7 @@ async function workflowRoutes(
 		"/documents/:documentId",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 			schema: { params: documentIdSchema },
 		},
@@ -54,7 +55,7 @@ async function workflowRoutes(
 		"/tasks/:taskId/approve",
 		{
 			config: {
-				authorization: routePolicies.capability("document.approve"),
+				authorization: routePolicies.capability(DocumentCapabilities.APPROVE),
 			},
 			schema: { params: taskIdSchema, body: workflowTaskApprovalSchema },
 		},
@@ -79,7 +80,7 @@ async function workflowRoutes(
 		"/tasks/:taskId/reject",
 		{
 			config: {
-				authorization: routePolicies.capability("document.reject"),
+				authorization: routePolicies.capability(DocumentCapabilities.REJECT),
 			},
 			schema: { params: taskIdSchema, body: workflowTaskRejectionSchema },
 		},

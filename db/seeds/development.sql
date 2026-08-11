@@ -86,7 +86,10 @@ VALUES
 	('perm.records.disposal.request', 'records.disposal.request', 'Request disposal of eligible records'),
 	('perm.records.disposal.approve', 'records.disposal.approve', 'Approve or reject a disposal request'),
 	('perm.records.disposal.execute', 'records.disposal.execute', 'Execute an approved disposal request'),
-	('perm.audit.event.view', 'audit.event.view', 'View audit events within the assigned scope')
+	('perm.audit.event.view', 'audit.event.view', 'View audit events within the assigned scope'),
+	('perm.document.classification.manage', 'document.classification.manage', 'Create and maintain document classification reference data'),
+	('perm.document.type.manage', 'document.type.manage', 'Create and maintain document types'),
+	('perm.organization.manage', 'organization.manage', 'Create and maintain organizational units, offices, and designations')
 ON CONFLICT (id) DO UPDATE SET
 	code = EXCLUDED.code,
 	description = EXCLUDED.description;
@@ -100,7 +103,9 @@ VALUES
 	('role.registry_supervisor', 'registry_supervisor', NOW()),
 	('role.records_officer', 'records_officer', NOW()),
 	('role.records_manager', 'records_manager', NOW()),
-	('role.auditor', 'auditor', NOW())
+	('role.auditor', 'auditor', NOW()),
+	('role.document_configuration_manager', 'document_configuration_manager', NOW()),
+	('role.organization_administrator', 'organization_administrator', NOW())
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 WITH mappings(role_name, capability_code) AS (
@@ -138,7 +143,10 @@ WITH mappings(role_name, capability_code) AS (
 		('records_officer', 'records.transfer.create'),
 		('records_officer', 'records.disposal.view'),
 		('records_officer', 'records.disposal.request'),
-		('auditor', 'audit.event.view')
+		('auditor', 'audit.event.view'),
+		('document_configuration_manager', 'document.classification.manage'),
+		('document_configuration_manager', 'document.type.manage'),
+		('organization_administrator', 'organization.manage')
 )
 INSERT INTO identity.role_permissions (role_id, permission_id)
 SELECT roles.id, permissions.id
@@ -162,4 +170,16 @@ FROM identity.roles AS roles
 CROSS JOIN identity.permissions AS permissions
 WHERE roles.name = 'records_manager'
 	AND permissions.code LIKE 'records.%'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO identity.role_permissions (role_id, permission_id)
+SELECT roles.id, permissions.id
+FROM identity.roles AS roles
+CROSS JOIN identity.permissions AS permissions
+WHERE roles.name = 'system_admin'
+	AND permissions.code IN (
+		'document.classification.manage',
+		'document.type.manage',
+		'organization.manage'
+	)
 ON CONFLICT DO NOTHING;

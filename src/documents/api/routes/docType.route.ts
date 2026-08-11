@@ -7,6 +7,7 @@ import {
     type DocTypeIdSchemaType,
 } from "../types/docType.type.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function documentTypeRoutes(
 	fastify: FastifyInstance,
@@ -20,7 +21,7 @@ async function documentTypeRoutes(
 		"/type",
 		{
 			config: {
-				authorization: routePolicies.capability("document.type.manage"),
+				authorization: routePolicies.capability(DocumentCapabilities.TYPE_MANAGE),
 			},
 			schema: { body: docTypeCreationSchema },
 		},
@@ -47,7 +48,7 @@ async function documentTypeRoutes(
 		"/types",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 		},
 		async (request: FastifyRequest, reply: FastifyReply) => {
@@ -63,7 +64,7 @@ async function documentTypeRoutes(
     // fetch a specific document type
 	fastify.get("/type/:typeId", {
 		config: {
-			authorization: routePolicies.capability("document.view"),
+			authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 		},
 		schema: { params: docTypeIdSchema },
 	}, async(request: FastifyRequest<{Params: DocTypeIdSchemaType}>, reply: FastifyReply) => {

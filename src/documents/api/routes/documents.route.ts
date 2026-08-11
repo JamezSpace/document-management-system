@@ -16,6 +16,7 @@ import {
 } from "../types/document.type.js";
 import type { DocumentIdentityPort } from "../../../shared/application/port/intersubsystem/DocumentIdentity.port.js";
 import { routePolicies } from "../../../security/application/authorization.types.js";
+import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
 async function documentRoutes(
 	fastify: FastifyInstance,
@@ -31,7 +32,7 @@ async function documentRoutes(
 		"/",
 		{
 			config: {
-				authorization: routePolicies.capability("document.create"),
+				authorization: routePolicies.capability(DocumentCapabilities.CREATE),
 			},
 			schema: { body: documentSchemaForCreation },
 		},
@@ -86,7 +87,7 @@ async function documentRoutes(
 		"/:docId",
 		{
 			config: {
-				authorization: routePolicies.capability("document.view"),
+				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
 			schema: { params: documentIdSchema },
 		},
@@ -116,7 +117,7 @@ async function documentRoutes(
 		"/:docId/save",
 		{
 			config: {
-				authorization: routePolicies.capability("document.update"),
+				authorization: routePolicies.capability(DocumentCapabilities.UPDATE),
 			},
 			schema: { params: documentIdSchema, body: documentSchemaForSave },
 		},
@@ -160,7 +161,7 @@ async function documentRoutes(
 		"/:staffId/submit",
 		{
 			config: {
-				authorization: routePolicies.capability("document.submit"),
+				authorization: routePolicies.capability(DocumentCapabilities.SUBMIT),
 			},
 			schema: { params: docStaffIdSchema, body: documentSchema },
 		},
@@ -193,7 +194,7 @@ async function documentRoutes(
 		"/:docId",
 		{
 			config: {
-				authorization: routePolicies.capability("document.delete"),
+				authorization: routePolicies.capability(DocumentCapabilities.DELETE),
 			},
 			schema: { params: documentIdSchema },
 		},
