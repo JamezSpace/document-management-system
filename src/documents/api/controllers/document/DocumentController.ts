@@ -195,6 +195,22 @@ class DocumentController {
 		return savedDoc;
 	}
 
+	async saveDocumentContent(
+		documentId: string,
+		contentDelta: unknown,
+		actorId: string,
+	) {
+		const document = await this.getDocumentByIdUsecase.execute(documentId);
+
+		if (!document) return null;
+
+		return this.createDocumentUseCase.saveDocument(
+			document,
+			contentDelta,
+			actorId,
+		);
+	}
+
 	async submitDocument(actorId: string, doc: DocumentSchemaType) {
 		const version = doc.currentVersion
 			? new DocumentVersion({
@@ -247,6 +263,14 @@ class DocumentController {
 		);
 
 		return submittedDocument;
+	}
+
+	async submitDocumentById(documentId: string, actorId: string) {
+		const document = await this.getDocumentByIdUsecase.execute(documentId);
+
+		if (!document) return null;
+
+		return this.submitDocUsecase.submitDocument(actorId, document);
 	}
 
 	async deleteDocument(documentId: string, deletedBy: string) {

@@ -118,10 +118,18 @@ const documentSchemaForSave = Type.Object(
 	{ additionalProperties: false },
 );
 
+const saveDocumentContentCommandSchema = Type.Object(
+	{
+		contentDelta: Type.Unknown(),
+	},
+	{ additionalProperties: false },
+);
+
 type DocumentSchemaType = Static<typeof documentSchema>;
 type DocumentIdSchemaType = Static<typeof documentIdSchema>;
 type DocStaffIdSchemaType = Static<typeof docStaffIdSchema>;
 type DocumentSchemaForSaveType = Static<typeof documentSchemaForSave>;
+type SaveDocumentContentCommandType = Static<typeof saveDocumentContentCommandSchema>;
 type DocumentVersionSchemaType = Static<typeof documentVersionSchema>;
 type DocumentSchemaTypeForCreation = Static<typeof documentSchemaForCreation>;
 
@@ -131,10 +139,12 @@ export {
 	documentSchema,
 	documentSchemaForCreation,
 	documentSchemaForSave,
+	saveDocumentContentCommandSchema,
 	documentVersionSchema,
 	type DocStaffIdSchemaType,
 	type DocumentIdSchemaType,
 	type DocumentSchemaForSaveType,
+	type SaveDocumentContentCommandType,
 	type DocumentSchemaType,
 	type DocumentSchemaTypeForCreation,
 	type DocumentVersionSchemaType,

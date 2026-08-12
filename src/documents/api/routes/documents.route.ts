@@ -8,11 +8,13 @@ import {
     documentSchema,
     documentSchemaForCreation,
     documentSchemaForSave,
+	saveDocumentContentCommandSchema,
     type DocStaffIdSchemaType,
     type DocumentIdSchemaType,
     type DocumentSchemaForSaveType,
     type DocumentSchemaType,
     type DocumentSchemaTypeForCreation,
+	type SaveDocumentContentCommandType,
 } from "../types/document.type.js";
 import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
@@ -154,6 +156,40 @@ async function documentRoutes(
 		},
 	);
 
+	// Save editor content using the authenticated actor and server-owned document state.
+	fastify.patch(
+		"/:docId/content",
+		{
+			config: {
+				authorization: routePolicies.capability(DocumentCapabilities.UPDATE),
+			},
+			schema: {
+				params: documentIdSchema,
+				body: saveDocumentContentCommandSchema,
+			},
+		},
+		async (
+			request: FastifyRequest<{
+				Params: DocumentIdSchemaType;
+				Body: SaveDocumentContentCommandType;
+			}>,
+			reply: FastifyReply,
+		) => {
+			const savedDocument = await documentController.saveDocumentContent(
+				request.params.docId,
+				request.body.contentDelta,
+				request.actor!.staffId,
+			);
+
+			if (!savedDocument)
+				throw new ApiError(ApiErrorEnum.NOT_FOUND, {
+					message: `Document with id: ${request.params.docId} doesn't exist`,
+				});
+
+			return reply.code(200).send({ success: true, data: savedDocument });
+		},
+	);
+
 	// submit document
 	fastify.post(
 		"/:staffId/submit",
@@ -184,6 +220,36 @@ async function documentRoutes(
                 success: true,
                 data: submitedDoc
             })
+		},
+	);
+
+	// Submit by resource id; actor identity and document state are server-owned.
+	fastify.post(
+		"/:docId/submit",
+		{
+			config: {
+				authorization: routePolicies.capability(DocumentCapabilities.SUBMIT),
+			},
+			schema: { params: documentIdSchema },
+		},
+		async (
+			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
+			reply: FastifyReply,
+		) => {
+			const submittedDocument = await documentController.submitDocumentById(
+				request.params.docId,
+				request.actor!.staffId,
+			);
+
+			if (!submittedDocument)
+				throw new ApiError(ApiErrorEnum.NOT_FOUND, {
+					message: `Document with id: ${request.params.docId} doesn't exist`,
+				});
+
+			return reply.code(200).send({
+				success: true,
+				data: submittedDocument,
+			});
 		},
 	);
 

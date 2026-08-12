@@ -144,6 +144,7 @@ class WorkspacePolicyEvaluator {
 		return {
 			mode: this.workspaceInitMode,
 			authorizedActions,
+			workflow: workflowContext,
             metadata: {
                 isAuthor: isActorTheAuthor,
                 document
