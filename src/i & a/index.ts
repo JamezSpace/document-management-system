@@ -338,8 +338,7 @@ export default async function IdentityAccessSubsystem(
 
 	const staffController = new StaffController(
 		getAllStaffUseCase,
-		addNewStaffUseCase,
-        createStaffViaInviteUseCase,
+		createStaffViaInviteUseCase,
 		activationOrchestratorUseCase,
 		editStaffUseCase,
 		deleteStaffUseCase,
