@@ -12,8 +12,20 @@ EXCEPTION
 END
 $$;
 
-ALTER TYPE identity.role_assignments_source
-	ADD VALUE IF NOT EXISTS 'delegated';
+DO $$
+BEGIN
+	IF to_regtype('identity.role_assignments_source') IS NULL THEN
+		CREATE TYPE identity.role_assignments_source AS ENUM (
+			'derived',
+			'manual',
+			'delegated'
+		);
+	ELSE
+		ALTER TYPE identity.role_assignments_source
+			ADD VALUE IF NOT EXISTS 'delegated';
+	END IF;
+END
+$$;
 
 DO $$
 BEGIN

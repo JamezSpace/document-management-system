@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import type InvitesController from "../../controllers/user/Invites.controller.js";
 import { initInviteSchema, inviteIdSchema, type InitInviteType, type InviteIdType } from "../../types/user/user.type.js";
 import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
+import { routePolicies } from "../../../../../security/application/type/authorization.type.js";
 
 async function inviteRoutes(
 	fastify: FastifyInstance,

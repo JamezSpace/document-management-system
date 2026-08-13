@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { routePolicies } from "../../../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../../../security/application/type/authorization.type.js";
 import ApplicationError from "../../../../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../../../../shared/errors/enum/application.enum.js";
 import type StaffController from "../../controllers/staff/Staff.controller.js";

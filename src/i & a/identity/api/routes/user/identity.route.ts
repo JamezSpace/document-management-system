@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import ApiError from "../../../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../../../shared/errors/enum/api.enum.js";
 import AuthenticationController from "../../controllers/user/Authentication.controller.js";
@@ -19,6 +18,7 @@ import {
 } from "../../types/user/user.type.js";
 import { InviteStatus } from "../../../domain/enum/staff.enum.js";
 import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
+import { routePolicies } from "../../../../../security/application/type/authorization.type.js";
 
 async function identityRoutes(
 	fastify: FastifyInstance,

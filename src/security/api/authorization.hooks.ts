@@ -6,12 +6,10 @@ import type {
 import type { AuthServicePort } from "../../i & a/identity/application/ports/services/AuthService.port.js";
 import ApplicationError from "../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../shared/errors/enum/application.enum.js";
-import type { ActorContextRepositoryPort } from "../application/ActorContextRepository.port.js";
-import AuthorizationService from "../application/AuthorizationService.js";
-import type {
-	ActorContext,
-	RouteAuthorizationPolicy,
-} from "../application/authorization.types.js";
+import type { ActorContextRepositoryPort } from "../application/port/ActorContextRepository.port.js";
+import AuthorizationService from "../application/services/AuthorizationService.js";
+import type { ActorContext, RouteAuthorizationPolicy } from "../application/type/authorization.type.js";
+
 
 function assertRouteHasAuthorizationPolicy(route: RouteOptions): void {
 	// CORS owns the generated preflight route, so it has no application policy.

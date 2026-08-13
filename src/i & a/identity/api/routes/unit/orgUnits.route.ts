@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { routePolicies } from "../../../../../security/application/authorization.types.js";
 import OrgUnitController from "../../controllers/organizationalUnit/OrganizationUnit.controller.js";
 import { createOrgUnitSchema, type CreateOrgUnitType } from "../../types/unit/orgUnit.type.js";
 import { IdentityCapabilities } from "../../../domain/enum/identityCapabilities.enum.js";
+import { routePolicies } from "../../../../../security/application/type/authorization.type.js";
 
 async function orgUnitRoutes(
 	fastify: FastifyInstance,

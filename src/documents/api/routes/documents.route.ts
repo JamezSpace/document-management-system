@@ -5,14 +5,12 @@ import type DocumentController from "../controllers/document/DocumentController.
 import {
     docStaffIdSchema,
     documentIdSchema,
-    documentSchema,
     documentSchemaForCreation,
     documentSchemaForSave,
 	saveDocumentContentCommandSchema,
     type DocStaffIdSchemaType,
     type DocumentIdSchemaType,
     type DocumentSchemaForSaveType,
-    type DocumentSchemaType,
     type DocumentSchemaTypeForCreation,
 	type SaveDocumentContentCommandType,
 } from "../types/document.type.js";
@@ -187,39 +185,6 @@ async function documentRoutes(
 				});
 
 			return reply.code(200).send({ success: true, data: savedDocument });
-		},
-	);
-
-	// submit document
-	fastify.post(
-		"/:staffId/submit",
-		{
-			config: {
-				authorization: routePolicies.capability(DocumentCapabilities.SUBMIT),
-			},
-			schema: { params: docStaffIdSchema, body: documentSchema },
-		},
-		async (
-			request: FastifyRequest<{
-				Params: DocStaffIdSchemaType;
-                Body: DocumentSchemaType
-			}>,
-			reply: FastifyReply,
-		) => {
-			const { staffId } = request.params;
-			const documentToSubmit = request.body;
-
-			if (request.actor!.staffId !== staffId)
-				throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
-					message: "Staff may only submit documents as themselves",
-				});
-            
-            const submitedDoc = await documentController.submitDocument(staffId, documentToSubmit);
-
-			return reply.code(200).send({
-                success: true,
-                data: submitedDoc
-            })
 		},
 	);
 

@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { routePolicies } from "../../../../../security/application/authorization.types.js";
+import { routePolicies } from "../../../../../security/application/type/authorization.type.js";
 import type DesignationController from "../../controllers/office/Designation.controller.js";
 import {
     createDesignationSchema,
