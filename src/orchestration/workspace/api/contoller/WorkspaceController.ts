@@ -11,9 +11,9 @@ class WorkspaceController {
     ){}
 
     async resolveWorkspacePermissions(documentId: string, actorStaffId: string) {
-        // fetch document
-        const document = await this.getDocumentUsecase.execute(documentId);
+        // fetch necessary items for workspace
         const staffActor = { id: actorStaffId };
+        const document = await this.getDocumentUsecase.execute(documentId);
         const workflowContext = await this.getWorkflowContextUsecase.execute(documentId);
 
         if(!document) 
