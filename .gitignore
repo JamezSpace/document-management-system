@@ -1,0 +1,6 @@
+node_modules/
+.test-dist/
+.env
+requests.http
+gen-commit.ps1
+.pnpm-store

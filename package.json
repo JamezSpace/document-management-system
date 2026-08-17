@@ -1,0 +1,50 @@
+{
+  "name": "document-management-system",
+  "version": "1.0.0",
+  "description": "",
+	"main": "app.ts",
+	"scripts": {
+		"dev": "tsx --env-file=.env src/server.ts",
+		"test": "pnpm run test:workflow && pnpm run test:access && pnpm run test:security",
+		"test:build": "tsc --outDir .test-dist --declaration false --declarationMap false --sourceMap false",
+		"test:access": "pnpm run test:build && node --test .test-dist/test/access/RoleAssignment.test.js .test-dist/test/access/ResolveStaffAuthority.test.js",
+		"test:security": "pnpm run test:build && node --test .test-dist/test/security/AuthorizationHooks.test.js",
+		"test:workflow": "pnpm run test:build && node --test .test-dist/test/workflow/ApproverResolverService.test.js .test-dist/test/workflow/WorkflowTask.test.js .test-dist/test/workflow/WorkflowTaskUseCases.test.js",
+		"typecheck": "tsc --noEmit --pretty false",
+		"db:migrate": "tsx --env-file=.env scripts/db/migrate.ts",
+		"db:migrate:check": "tsx scripts/db/check-migrations.ts",
+		"db:seed:development": "tsx --env-file=.env scripts/db/seed-development.ts"
+	},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/postgres": "^6.0.2",
+    "@fastify/type-provider-typebox": "^6.1.0",
+    "@sinclair/typebox": "^0.34.48",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/lodash": "^4.17.24",
+    "@types/nodemailer": "^7.0.11",
+    "@types/pg": "^8.16.0",
+    "cloudinary": "^2.9.0",
+    "fastify": "^5.7.4",
+    "fastify-plugin": "^5.1.0",
+    "firebase-admin": "^13.6.1",
+    "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "lodash": "^4.17.23",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.18.0",
+    "resend": "^6.10.0",
+    "uuidv7": "^1.1.0"
+  }
+}

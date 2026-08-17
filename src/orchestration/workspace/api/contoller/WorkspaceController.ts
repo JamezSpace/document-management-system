@@ -1,0 +1,34 @@
+import ApiError from "../../../../shared/errors/NexusError.js";
+import { ApiErrorEnum } from "../../../../shared/errors/enum/api.enum.js";
+import WorkspacePolicyEvaluator from "../../application/services/WorkspacePolicyEvaluator.js";
+import type GetDocumentUsecase from "../../application/usecases/GetDocument.usecase.js";
+import type GetWorkflowContextUsecase from "../../application/usecases/GetWorkflowContext.usecase.js";
+
+class WorkspaceController {
+    constructor(
+        private readonly getDocumentUsecase: GetDocumentUsecase,
+        private readonly getWorkflowContextUsecase: GetWorkflowContextUsecase
+    ){}
+
+    async resolveWorkspacePermissions(documentId: string, actorStaffId: string) {
+        // fetch necessary items for workspace
+        const staffActor = { id: actorStaffId };
+        const document = await this.getDocumentUsecase.execute(documentId);
+        const workflowContext = await this.getWorkflowContextUsecase.execute(documentId);
+
+        if(!document) 
+            throw new ApiError(ApiErrorEnum.NOT_FOUND, {
+                message: 'Document not found'
+            });
+
+        if(!workflowContext) 
+            throw new ApiError(ApiErrorEnum.NOT_FOUND, {
+                message: `Workflow for doc ${documentId} not found`
+            });
+        
+        const permissions = await WorkspacePolicyEvaluator.eval(document, workflowContext, staffActor);
+        return permissions;
+    }
+}
+
+export default WorkspaceController;
