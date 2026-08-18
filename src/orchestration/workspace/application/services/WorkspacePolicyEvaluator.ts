@@ -6,6 +6,9 @@ import {
 } from "../../../../shared/application/port/intersubsystem/OrchestrationDocument.port.js";
 import type { Staff } from "../../../../shared/application/port/intersubsystem/OrchestrationIdentity.port.js";
 import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import type { GovernancePolicyReference } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import ApplicationError from "../../../../shared/errors/ApplicationError.error.js";
+import { ApplicationErrorEnum } from "../../../../shared/errors/enum/application.enum.js";
 import { WorkspaceActions } from "../enum/WorkspaceActions.enum.js";
 
 class WorkspacePolicyEvaluator {
@@ -26,11 +29,12 @@ class WorkspacePolicyEvaluator {
 		return "readonly";
 	}
 
-	static getAuthorizedBasicActions(
+	static async getAuthorizedBasicActions(
 		document: Document,
 		isAuthor: boolean,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
-	): WorkspaceActions[] {
+		policyReference: GovernancePolicyReference,
+	): Promise<WorkspaceActions[]> {
 		const actions: WorkspaceActions[] = [];
 		const docState = document.getCurrentVersion()?.getState() ?? null;
 
@@ -46,11 +50,11 @@ class WorkspacePolicyEvaluator {
 				break;
 			case DocumentLifecycleState.ACTIVE:
 				if (
-					documentGovernancePolicy.evaluateWorkspaceAction("export", {
+					(await documentGovernancePolicy.evaluateWorkspaceAction("export", {
 						sensitivity: document.classification.sensitivity,
 						isAuthor,
 						isAuthenticatedInternalStaff: true,
-					}).allowed
+					}, policyReference)).allowed
 				) {
 					actions.push(WorkspaceActions.EXPORT);
 				}
@@ -101,19 +105,21 @@ class WorkspacePolicyEvaluator {
 		return workflowContext.canReject;
 	}
 
-	static canCC(
+	static async canCC(
 		document: Document,
 		isAuthor: boolean,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
-	): boolean {
+		policyReference: GovernancePolicyReference,
+	): Promise<boolean> {
 		const docState = document.getCurrentVersion()?.getState() ?? null;
-		const governanceDecision = documentGovernancePolicy.evaluateWorkspaceAction(
+		const governanceDecision = await documentGovernancePolicy.evaluateWorkspaceAction(
 			"manage_cc",
 			{
 				sensitivity: document.classification.sensitivity,
 				isAuthor,
 				isAuthenticatedInternalStaff: true,
 			},
+			policyReference,
 		);
 
 		// just initialized docs or draft docs can be CC'd
@@ -129,10 +135,11 @@ class WorkspacePolicyEvaluator {
         return !isAuthor;
     }
 
-	static canAttach(
+	static async canAttach(
 		document: Document,
 		isAuthor: boolean,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
+		policyReference: GovernancePolicyReference,
 	) {
 		const docState = document.getCurrentVersion()?.getState() ?? null;
 
@@ -141,13 +148,14 @@ class WorkspacePolicyEvaluator {
 			DocumentLifecycleState.DRAFT,
 			DocumentLifecycleState.IN_REVIEW,
 		].includes(docState);
-		const governanceDecision = documentGovernancePolicy.evaluateWorkspaceAction(
+		const governanceDecision = await documentGovernancePolicy.evaluateWorkspaceAction(
 			"attach",
 			{
 				sensitivity: document.classification.sensitivity,
 				isAuthor,
 				isAuthenticatedInternalStaff: true,
 			},
+			policyReference,
 		);
 
 		return canAttach && governanceDecision.allowed;
@@ -161,14 +169,16 @@ class WorkspacePolicyEvaluator {
 	) {
 		// find if actor is author
 		const isActorTheAuthor = this.isActorTheAuthor(document, actor);
+		const policyReference = this.getBoundPolicyReference(document);
 
 		// load workspace mode
 		this.workspaceInitMode = this.getWorkspaceInitMode(document, isActorTheAuthor);
 
-		const authorizedBasicActions = this.getAuthorizedBasicActions(
+		const authorizedBasicActions = await this.getAuthorizedBasicActions(
 			document,
 			isActorTheAuthor,
 			documentGovernancePolicy,
+			policyReference,
 		);
 		const authorizedWorkflowActions = this.getAuthorizedWorkflowActions(document, workflowContext);
 
@@ -177,13 +187,13 @@ class WorkspacePolicyEvaluator {
 			...authorizedWorkflowActions,
 		];
 
-		if (this.canCC(document, isActorTheAuthor, documentGovernancePolicy))
+		if (await this.canCC(document, isActorTheAuthor, documentGovernancePolicy, policyReference))
 			authorizedActions.push(WorkspaceActions.CC);
 
         if(this.canAcknowledge(isActorTheAuthor))
             authorizedActions.push(WorkspaceActions.ACKNOWLEDGE);
         
-		if (this.canAttach(document, isActorTheAuthor, documentGovernancePolicy))
+		if (await this.canAttach(document, isActorTheAuthor, documentGovernancePolicy, policyReference))
 			authorizedActions.push(WorkspaceActions.ATTACH);
 
 
@@ -191,12 +201,23 @@ class WorkspacePolicyEvaluator {
 			mode: this.workspaceInitMode,
 			authorizedActions,
 			workflow: workflowContext,
-			governance: documentGovernancePolicy.getPolicyReference(),
+			governance: policyReference,
 			metadata: {
 				isAuthor: isActorTheAuthor,
 				document,
 			},
 		};
+	}
+
+	private static getBoundPolicyReference(document: Document): GovernancePolicyReference {
+		const policyId = document.classification.governancePolicyKey;
+		const policyVersion = document.classification.governancePolicyVersion;
+		if (!policyId || !policyVersion) {
+			throw new ApplicationError(ApplicationErrorEnum.POLICY_NOT_FOUND, {
+				message: `Document '${document.id}' is not bound to a governance policy version`,
+			});
+		}
+		return { policyId, policyVersion };
 	}
 }
 

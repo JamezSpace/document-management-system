@@ -1,15 +1,6 @@
 import DomainError from "../../shared/errors/DomainError.error.js";
 import { GlobalDomainErrors } from "../../shared/errors/enum/domain.enum.js";
-
-interface DocumentRetentionPolicyPayload {
-    id: string;
-    archivalRequired: boolean;
-    policyVersion?: number;
-    retentionDuration: number;
-    documentTypeId: string;
-    effectiveFrom: Date;
-    createdAt?: Date;
-}
+import type { DocumentRetentionPolicyPayload } from "./type/documentRetentionPolicyPayload.type.js";
 
 class DocumentRetentionPolicy {
     readonly id: string;

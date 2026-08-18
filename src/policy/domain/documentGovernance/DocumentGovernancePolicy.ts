@@ -1,119 +1,74 @@
-import { DocumentActorRelationship } from "../enum/documentActorRelationship.enum.js";
-import { DocumentGovernanceAction } from "../enum/documentGovernanceAction.enum.js";
-import { GovernanceSensitivityLevel } from "../enum/governanceSensitivityLevel.enum.js";
-import { GovernanceObligation } from "../enum/governanceObligation.enum.js";
+import DomainError from "../../../shared/errors/DomainError.error.js";
+import { GlobalDomainErrors } from "../../../shared/errors/enum/domain.enum.js";
+import { DocumentGovernancePolicyStatus } from "../enum/documentGovernancePolicyStatus.enum.js";
+import type { DocumentGovernanceRule } from "./DocumentGovernanceRule.js";
+import type { DocumentGovernancePolicyPayload } from "../type/documentGovernancePolicyPayload.type.js";
 
-type ForwardDestination = "internal" | "external";
-type RestrictedGrantBasis = "named_individual" | "ex_officio";
+class DocumentGovernancePolicy {
+	readonly id: string;
+	readonly policyKey: string;
+	readonly policyVersion: number;
+	readonly schemaVersion: number;
+	readonly status: DocumentGovernancePolicyStatus;
+	readonly effectiveFrom: Date;
+	readonly effectiveTo: Date | null;
+	readonly definitionChecksum: string;
+	readonly createdBy: string;
+	readonly approvedBy: string | null;
+	readonly approvalReason: string | null;
+	readonly createdAt: Date;
+	readonly approvedAt: Date | null;
+	readonly metadata: Readonly<Record<string, unknown>>;
+	readonly rules: readonly DocumentGovernanceRule[];
 
-interface DynamicExportGrant {
-	active: boolean;
-	grantedBy: "originator" | "unit_head";
-	expiresAt?: Date | null;
-	remainingUses?: number | null;
+	constructor(payload: DocumentGovernancePolicyPayload) {
+		if (
+			!payload.id ||
+			!payload.policyKey ||
+			!Number.isInteger(payload.policyVersion) ||
+			payload.policyVersion <= 0 ||
+			payload.schemaVersion !== 1 ||
+			Number.isNaN(payload.effectiveFrom.getTime()) ||
+			(payload.effectiveTo !== undefined &&
+				payload.effectiveTo !== null &&
+				(Number.isNaN(payload.effectiveTo.getTime()) ||
+					payload.effectiveTo <= payload.effectiveFrom)) ||
+			!/^[a-f\d]{64}$/i.test(payload.definitionChecksum) ||
+			!Object.values(DocumentGovernancePolicyStatus).includes(payload.status) ||
+			!payload.createdBy ||
+			Number.isNaN(payload.createdAt.getTime()) ||
+			(payload.status !== DocumentGovernancePolicyStatus.DRAFT &&
+				(!payload.approvedBy || !payload.approvedAt ||
+					Number.isNaN(payload.approvedAt.getTime()))) ||
+			payload.metadata.defaultEffect !== "deny" ||
+			payload.rules.length === 0
+		) {
+			throw new DomainError(
+				GlobalDomainErrors.document.INVALID_GOVERNANCE_POLICY,
+				{ message: "Stored document governance policy is invalid" },
+			);
+		}
+
+		this.id = payload.id;
+		this.policyKey = payload.policyKey;
+		this.policyVersion = payload.policyVersion;
+		this.schemaVersion = payload.schemaVersion;
+		this.status = payload.status;
+		this.effectiveFrom = new Date(payload.effectiveFrom);
+		this.effectiveTo = payload.effectiveTo
+			? new Date(payload.effectiveTo)
+			: null;
+		this.definitionChecksum = payload.definitionChecksum;
+		this.createdBy = payload.createdBy;
+		this.approvedBy = payload.approvedBy ?? null;
+		this.approvalReason = payload.approvalReason ?? null;
+		this.createdAt = new Date(payload.createdAt);
+		this.approvedAt = payload.approvedAt ? new Date(payload.approvedAt) : null;
+		this.metadata = Object.freeze({ ...payload.metadata });
+		this.rules = Object.freeze(
+			[...payload.rules].sort((left, right) => left.priority - right.priority),
+		);
+	}
 }
 
-interface DocumentGovernanceContext {
-	action: DocumentGovernanceAction;
-	sensitivity: GovernanceSensitivityLevel;
-	relationships?: DocumentActorRelationship[];
-	isAuthenticatedInternalStaff?: boolean;
-	forwardDestination?: ForwardDestination;
-	hasRecordedJustification?: boolean;
-	hasDowngradeApproval?: boolean;
-	isSensitivityDowngrade?: boolean;
-	hasRequiredClearance?: boolean;
-	hasActiveGuestReaderGrant?: boolean;
-	exportGrant?: DynamicExportGrant | null;
-	isInternalCanvas?: boolean;
-}
-
-interface GovernanceDecision {
-	allowed: boolean;
-	policyId: string;
-	policyVersion: number;
-	reasonCode: string;
-	obligations: GovernanceObligation[];
-}
-
-const DOCUMENT_GOVERNANCE_POLICY = Object.freeze({
-	id: "NEXUSFONS-DOCUMENT-GOVERNANCE",
-	version: 1,
-	effectiveFrom: "2026-08-18",
-	classification: {
-		assignmentAuthority: DocumentActorRelationship.AUTHOR,
-		downgrade: {
-			requiresApproval: true,
-			requiresRecordedReason: true,
-			approvers: [
-				DocumentActorRelationship.UNIT_HEAD,
-				DocumentActorRelationship.DELEGATED_UNIT_HEAD,
-			],
-		},
-		versionBinding: "classification_time",
-	},
-	delegation: {
-		requireExactlyOneEffectiveUnitHead: true,
-		activeDelegationSupersedesSubstantiveUnitHead: true,
-		requireStartAndEndTime: true,
-		forbidOverlappingDelegations: true,
-	},
-	transfer: {
-		defaultWorkspaceCustody: "revoke",
-		publicAndInternal: "general_read_only",
-		confidential: "revoke_unless_time_bound_guest_reader_grant",
-		restricted: {
-			exOfficio: "transfer_to_incoming_desk_holder",
-			personSpecific: "retain_only_if_clearance_remains_sufficient",
-		},
-		placeOutstandingWorkInHandover: true,
-		preserveHistoricalActorAttribution: true,
-	},
-	audit: {
-		publicAndInternalViews: "operational_http_log",
-		confidentialAndRestrictedViews: "immutable_security_audit",
-		alwaysAudit: [
-			"download",
-			"export",
-			"print",
-			"external_forward",
-			"direct_dispatch",
-			"reclassify",
-			"grant_access",
-			"revoke_access",
-			"custody_handover",
-			"clearance_override",
-			"denied_access",
-			"signature_verification_failure",
-		],
-		mandatoryReasonActions: [
-			"reclassify_downgrade",
-			"grant_explicit_access",
-			"clearance_override",
-			"confidential_forward",
-		],
-		integrity: {
-			appendOnly: true,
-			hashChained: true,
-			externalSignedCheckpointsRecommended: true,
-		},
-	},
-	restricted: {
-		roleInheritanceAllowed: false,
-		requiresNamedIndividualAndClearance: true,
-		forwardingAllowed: false,
-		exportAllowed: false,
-		printingAllowed: false,
-		rawDownloadAllowed: false,
-		screenCaptureControl: "best_effort_drm_deterrence",
-	},
-} as const);
-
-export {
-	DOCUMENT_GOVERNANCE_POLICY,
-	type DocumentGovernanceContext,
-	type DynamicExportGrant,
-	type ForwardDestination,
-	type GovernanceDecision,
-	type RestrictedGrantBasis,
-};
+export { DocumentGovernancePolicy };

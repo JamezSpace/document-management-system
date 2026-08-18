@@ -43,7 +43,7 @@ class DocumentCreationUseCase {
 		const result = await this.transactionManager.execute(
 			async (transactionInstance) => {
 				const governancePolicy =
-					this.documentGovernancePolicy.getPolicyReference();
+					await this.documentGovernancePolicy.getActivePolicyReference();
 				const retention = await this.retentionService.computeRetention(
 					docTypeId,
 					new Date(),

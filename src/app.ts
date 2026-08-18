@@ -15,9 +15,8 @@ import DocumentIdentityAdapter from "./i & a/identity/infrastructure/persistence
 import FirebaseAuthAdapter from "./i & a/identity/infrastructure/services/auth/FirebaseAuth.adapter.js";
 import NotificationSubsystem from "./notifications/index.js";
 import OrchestrationSubsystem from "./orchestration/workspace/index.js";
-import PolicySubsystem from "./policy/index.js";
+import PolicySubsystem, { createDocumentGovernancePolicyPort } from "./policy/index.js";
 import DocumentRetentionPolicyAdapter from "./policy/infrastructre/persistence/DocRetentionPolicy.adapter.js";
-import DocumentGovernancePolicyAdapter from "./policy/infrastructre/adapters/DocumentGovernancePolicy.adapter.js";
 import WorkflowPolicyAdapter from "./policy/infrastructre/persistence/WorkflowPolicy.adapter.js";
 import { registerAuthorizationHooks } from "./security/api/authorization.hooks.js";
 import type { ActorContextRepositoryPort } from "./security/application/port/ActorContextRepository.port.js";
@@ -83,7 +82,8 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 		const retentionService = new RetentionService(documentPolicyAdapter);
 		const dispatchStaffAdapter = new DispatchStaffAdapter(server.pg);
 		const dispatchDocumentAdapter = new DispatchDocumentAdapter(server.pg);
-		const documentGovernancePolicy = new DocumentGovernancePolicyAdapter();
+		const documentGovernancePolicy =
+			createDocumentGovernancePolicyPort(server.pg);
 
 		server.register(DocumentSubsystem, {
 			prefix: "/api/document",

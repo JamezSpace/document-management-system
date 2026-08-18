@@ -22,23 +22,27 @@ interface DocumentGovernanceDecision {
 	obligations: string[];
 }
 
+interface GovernancePolicyReference {
+	policyId: string;
+	policyVersion: number;
+}
+
 interface DocumentGovernancePolicyPort {
 	getSensitivityLevels(): readonly GovernanceDocumentSensitivity[];
 
 	evaluateWorkspaceAction(
 		action: WorkspaceGovernanceAction,
 		facts: WorkspaceGovernanceFacts,
-	): DocumentGovernanceDecision;
+		policyReference: GovernancePolicyReference,
+	): Promise<DocumentGovernanceDecision>;
 
-	getPolicyReference(): {
-		policyId: string;
-		policyVersion: number;
-	};
+	getActivePolicyReference(): Promise<GovernancePolicyReference>;
 }
 
 export type {
 	DocumentGovernanceDecision,
 	DocumentGovernancePolicyPort,
+	GovernancePolicyReference,
 	GovernanceDocumentSensitivity,
 	WorkspaceGovernanceAction,
 	WorkspaceGovernanceFacts,
