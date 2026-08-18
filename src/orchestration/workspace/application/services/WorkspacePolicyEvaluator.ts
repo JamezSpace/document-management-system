@@ -5,6 +5,7 @@ import {
 	type Document,
 } from "../../../../shared/application/port/intersubsystem/OrchestrationDocument.port.js";
 import type { Staff } from "../../../../shared/application/port/intersubsystem/OrchestrationIdentity.port.js";
+import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import { WorkspaceActions } from "../enum/WorkspaceActions.enum.js";
 
 class WorkspacePolicyEvaluator {
@@ -25,7 +26,11 @@ class WorkspacePolicyEvaluator {
 		return "readonly";
 	}
 
-	static getAuthorizedBasicActions(document: Document): WorkspaceActions[] {
+	static getAuthorizedBasicActions(
+		document: Document,
+		isAuthor: boolean,
+		documentGovernancePolicy: DocumentGovernancePolicyPort,
+	): WorkspaceActions[] {
 		const actions: WorkspaceActions[] = [];
 		const docState = document.getCurrentVersion()?.getState() ?? null;
 
@@ -40,7 +45,15 @@ class WorkspacePolicyEvaluator {
 				);
 				break;
 			case DocumentLifecycleState.ACTIVE:
-				actions.push(WorkspaceActions.EXPORT);
+				if (
+					documentGovernancePolicy.evaluateWorkspaceAction("export", {
+						sensitivity: document.classification.sensitivity,
+						isAuthor,
+						isAuthenticatedInternalStaff: true,
+					}).allowed
+				) {
+					actions.push(WorkspaceActions.EXPORT);
+				}
 				break;
 		}
 
@@ -88,37 +101,63 @@ class WorkspacePolicyEvaluator {
 		return workflowContext.canReject;
 	}
 
-    static canCC(
-        document: Document,
-        isAuthor: boolean
-    ): boolean {
-        const docState = document.getCurrentVersion()?.getState() ?? null;
+	static canCC(
+		document: Document,
+		isAuthor: boolean,
+		documentGovernancePolicy: DocumentGovernancePolicyPort,
+	): boolean {
+		const docState = document.getCurrentVersion()?.getState() ?? null;
+		const governanceDecision = documentGovernancePolicy.evaluateWorkspaceAction(
+			"manage_cc",
+			{
+				sensitivity: document.classification.sensitivity,
+				isAuthor,
+				isAuthenticatedInternalStaff: true,
+			},
+		);
 
-        // just initialized docs or draft docs can be CC'd
-        if (!docState || docState === DocumentLifecycleState.DRAFT) {
-            return isAuthor;
-        }
+		// just initialized docs or draft docs can be CC'd
+		if (!docState || docState === DocumentLifecycleState.DRAFT) {
+			return governanceDecision.allowed;
+		}
 
-        return false;
-    }
+		return false;
+	}
 
     static canAcknowledge(isAuthor: boolean) {
         // non-authors must acknowledge
         return !isAuthor;
     }
 
-    static canAttach(document: Document) {
-        const docState = document.getCurrentVersion()?.getState() ?? null;
+	static canAttach(
+		document: Document,
+		isAuthor: boolean,
+		documentGovernancePolicy: DocumentGovernancePolicyPort,
+	) {
+		const docState = document.getCurrentVersion()?.getState() ?? null;
 
-        const canAttach = [null, DocumentLifecycleState.DRAFT, DocumentLifecycleState.IN_REVIEW].includes(docState)
+		const canAttach = [
+			null,
+			DocumentLifecycleState.DRAFT,
+			DocumentLifecycleState.IN_REVIEW,
+		].includes(docState);
+		const governanceDecision = documentGovernancePolicy.evaluateWorkspaceAction(
+			"attach",
+			{
+				sensitivity: document.classification.sensitivity,
+				isAuthor,
+				isAuthenticatedInternalStaff: true,
+			},
+		);
 
-        return canAttach;
-    }
+		return canAttach && governanceDecision.allowed;
+	}
 
 	static async eval(
 		document: Document,
 		workflowContext: WorkflowContext | null,
 		actor: Staff,
+		documentGovernancePolicy: DocumentGovernancePolicyPort,
 	) {
 		// find if actor is author
 		const isActorTheAuthor = this.isActorTheAuthor(document, actor);
@@ -126,7 +165,11 @@ class WorkspacePolicyEvaluator {
 		// load workspace mode
 		this.workspaceInitMode = this.getWorkspaceInitMode(document, isActorTheAuthor);
 
-		const authorizedBasicActions = this.getAuthorizedBasicActions(document);
+		const authorizedBasicActions = this.getAuthorizedBasicActions(
+			document,
+			isActorTheAuthor,
+			documentGovernancePolicy,
+		);
 		const authorizedWorkflowActions = this.getAuthorizedWorkflowActions(document, workflowContext);
 
 		const authorizedActions: WorkspaceActions[] = [
@@ -134,24 +177,25 @@ class WorkspacePolicyEvaluator {
 			...authorizedWorkflowActions,
 		];
 
-        if(this.canCC(document, isActorTheAuthor))
-            authorizedActions.push(WorkspaceActions.CC);
+		if (this.canCC(document, isActorTheAuthor, documentGovernancePolicy))
+			authorizedActions.push(WorkspaceActions.CC);
 
         if(this.canAcknowledge(isActorTheAuthor))
             authorizedActions.push(WorkspaceActions.ACKNOWLEDGE);
         
-        if(this.canAttach(document))
-            authorizedActions.push(WorkspaceActions.ATTACH);
+		if (this.canAttach(document, isActorTheAuthor, documentGovernancePolicy))
+			authorizedActions.push(WorkspaceActions.ATTACH);
 
 
 		return {
 			mode: this.workspaceInitMode,
 			authorizedActions,
 			workflow: workflowContext,
-            metadata: {
-                isAuthor: isActorTheAuthor,
-                document
-            }
+			governance: documentGovernancePolicy.getPolicyReference(),
+			metadata: {
+				isAuthor: isActorTheAuthor,
+				document,
+			},
 		};
 	}
 }

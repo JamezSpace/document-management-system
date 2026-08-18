@@ -13,15 +13,20 @@ class DocumentRetentionPolicyAdapter
 {
 	constructor(private readonly dbPool: PostgresDb) {}
 
-	async getRetentionData(documentTypeId: string) {
+	async getRetentionData(documentTypeId: string, effectiveAt: Date) {
 		try {
 			const result = await this.dbPool.query(
 				`SELECT id, policy_version, retention_duration, archival_required
-            FROM policy.document_retention
-            WHERE document_type_id = $1 ORDER BY policy_version DESC`,
-				[documentTypeId],
+				 FROM policy.document_retention
+				 WHERE document_type_id = $1
+				   AND effective_from <= $2::date
+				 ORDER BY effective_from DESC, policy_version DESC
+				 LIMIT 1;`,
+				[documentTypeId, effectiveAt],
 			);
-            
+
+			if (result.rows.length === 0) return null;
+
 			const policyLoadedFromDb = result.rows[0];
 
 			return {
@@ -32,8 +37,6 @@ class DocumentRetentionPolicyAdapter
 			};
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
-
-			console.error(error);
 
 			throw new InfrastructureError(postgresError.summary, {
 				category: Category.PERSISTENCE,
@@ -60,10 +63,25 @@ class DocumentRetentionPolicyAdapter
 		documentRetentionPolicy: DocumentRetentionPolicy,
 	): Promise<DocumentRetentionPolicy> {
 		try {
-			const query = `INSERT INTO policy.document_retention (id, document_type_id,policy_version,retention_duration,archival_required,effective_from)
-        VALUES (
-            $1, $2, policy.gen_next_policy_version($2), $3, $4, $5
-        ) RETURNING id, document_type_id, retention_duration, archival_required, effective_from, created_at, policy_version;`;
+			const query = `
+				INSERT INTO policy.document_retention (
+					id,
+					document_type_id,
+					policy_version,
+					retention_duration,
+					archival_required,
+					effective_from
+				)
+				VALUES ($1, $2, policy.gen_next_policy_version($2), $3, $4, $5)
+				RETURNING
+					id,
+					document_type_id,
+					retention_duration,
+					archival_required,
+					effective_from,
+					created_at,
+					policy_version;
+			`;
 
 			const newPolicy = await this.dbPool.query(query, [
 				documentRetentionPolicy.id,
@@ -76,8 +94,6 @@ class DocumentRetentionPolicyAdapter
 			return this.toDomain(newPolicy.rows[0]);
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
-
-			console.error(error);
 
 			throw new InfrastructureError(postgresError.summary, {
 				category: Category.PERSISTENCE,

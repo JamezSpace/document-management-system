@@ -4,3 +4,4 @@ node_modules/
 requests.http
 gen-commit.ps1
 .pnpm-store
+docs/

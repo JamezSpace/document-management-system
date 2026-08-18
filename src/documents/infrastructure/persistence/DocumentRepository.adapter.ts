@@ -56,6 +56,8 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 
 			classification: {
 				sensitivity: row.sensitivity,
+				governancePolicyKey: row.governance_policy_key,
+				governancePolicyVersion: row.governance_policy_version,
 				functionCodeId: row.business_function_id,
 				documentTypeId: row.document_type_id,
 				classifiedBy: row.classified_by,
@@ -83,7 +85,8 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				INSERT INTO document.documents (
 					id, title, owner_id, reference_number, current_version_id,
 					originating_unit_id,  subject_code_id, direction,
-					sensitivity, business_function_id, document_type_id,
+					sensitivity, governance_policy_key, governance_policy_version,
+					business_function_id, document_type_id,
 					classified_by, classified_at, last_reclassified_at, last_reclassified_by,
 					policy_version, retention_schedule_id, retention_start_date, disposal_eligibility_date, archival_required,
 					created_at, updated_at
@@ -92,8 +95,9 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 					$1, $2, $3, $4, $5,
 					$6, $7, $8,
 					$9, $10, $11,
-					$12, $13, $14, $15,
-					$16, $17, $18, $19, $20,
+					$12, $13,
+					$14, $15, $16, $17,
+					$18, $19, $20, $21, $22,
 					now(), null
 				)
 				RETURNING *;
@@ -111,6 +115,8 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				document.correspondence.subjectCodeId,
 				document.correspondence.direction,
 				document.classification.sensitivity,
+				document.classification.governancePolicyKey,
+				document.classification.governancePolicyVersion,
 				document.classification.functionCodeId,
 				document.classification.documentTypeId,
 				document.classification.classifiedBy,
@@ -143,8 +149,13 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 
 	async findDocumentById(id: string): Promise<Document | null> {
 		try {
-			const query =
-				"SELECT * FROM document.full_document_details WHERE id = $1 LIMIT 1;";
+			const query = `
+				SELECT details.*, source.governance_policy_key, source.governance_policy_version
+				FROM document.full_document_details AS details
+				JOIN document.documents AS source ON source.id = details.id
+				WHERE details.id = $1
+				LIMIT 1;
+			`;
 
 			const result = await this.dbPool.query(query, [id]);
 
@@ -177,17 +188,19 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 					originating_unit_id = $6,
 					subject_code_id = $7,
 					sensitivity = $8,
-					business_function_id = $9,
-					document_type_id = $10,
-					classified_by = $11,
-					classified_at = $12,
-					last_reclassified_at = $13,
-					last_reclassified_by = $14,
-					policy_version = $15,
-					retention_schedule_id = $16,
-					retention_start_date = $17,
-					disposal_eligibility_date = $18,
-					archival_required = $19,
+					governance_policy_key = $9,
+					governance_policy_version = $10,
+					business_function_id = $11,
+					document_type_id = $12,
+					classified_by = $13,
+					classified_at = $14,
+					last_reclassified_at = $15,
+					last_reclassified_by = $16,
+					policy_version = $17,
+					retention_schedule_id = $18,
+					retention_start_date = $19,
+					disposal_eligibility_date = $20,
+					archival_required = $21,
 					updated_at = now()
 				WHERE id = $1
 				RETURNING *;
@@ -203,6 +216,8 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				document.correspondence.originatingUnitId,
 				document.correspondence.subjectCodeId,
 				document.classification.sensitivity,
+				document.classification.governancePolicyKey,
+				document.classification.governancePolicyVersion,
 				document.classification.functionCodeId,
 				document.classification.documentTypeId,
 				document.classification.classifiedBy,
@@ -249,9 +264,10 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 	async fetchDocumentsByStaff(staffId: string): Promise<Document[]> {
 		try {
 			const query = `
-                SELECT * 
-                FROM document.full_document_details
-                WHERE owner_id = $1;
+				SELECT details.*, source.governance_policy_key, source.governance_policy_version
+				FROM document.full_document_details AS details
+				JOIN document.documents AS source ON source.id = details.id
+				WHERE details.owner_id = $1;
             `;
 
 			const result = await this.dbPool.query(query, [staffId]);

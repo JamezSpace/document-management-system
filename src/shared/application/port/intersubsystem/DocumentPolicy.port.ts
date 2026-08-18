@@ -1,12 +1,13 @@
 interface DocumentRetentionPolicyPort {
 	getRetentionData(
 		documentTypeId: string,
+		effectiveAt: Date,
 	): Promise<{
 		duration: number;
 		archivalRequired: boolean;
 		policyVersion: number;
-        retentionScheduleId: string
-	}>;
+		retentionScheduleId: string;
+	} | null>;
 }
 
 export type { DocumentRetentionPolicyPort };

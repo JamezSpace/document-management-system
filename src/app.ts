@@ -17,6 +17,7 @@ import NotificationSubsystem from "./notifications/index.js";
 import OrchestrationSubsystem from "./orchestration/workspace/index.js";
 import PolicySubsystem from "./policy/index.js";
 import DocumentRetentionPolicyAdapter from "./policy/infrastructre/persistence/DocRetentionPolicy.adapter.js";
+import DocumentGovernancePolicyAdapter from "./policy/infrastructre/adapters/DocumentGovernancePolicy.adapter.js";
 import WorkflowPolicyAdapter from "./policy/infrastructre/persistence/WorkflowPolicy.adapter.js";
 import { registerAuthorizationHooks } from "./security/api/authorization.hooks.js";
 import type { ActorContextRepositoryPort } from "./security/application/port/ActorContextRepository.port.js";
@@ -82,15 +83,21 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 		const retentionService = new RetentionService(documentPolicyAdapter);
 		const dispatchStaffAdapter = new DispatchStaffAdapter(server.pg);
 		const dispatchDocumentAdapter = new DispatchDocumentAdapter(server.pg);
+		const documentGovernancePolicy = new DocumentGovernancePolicyAdapter();
 
 		server.register(DocumentSubsystem, {
 			prefix: "/api/document",
 			documentIdentityAdapter,
+			documentGovernancePolicy,
 			retentionService,
 			globalEventBus: eventBusAdapter,
 		});
 
-		server.register(OrchestrationSubsystem, { prefix: "/api" });
+		server.register(OrchestrationSubsystem, {
+			prefix: "/api",
+			documentGovernancePolicy,
+			workflowPolicy: policyWorkflowAdapter,
+		});
 		server.register(PolicySubsystem, { prefix: "/api/policy" });
 		server.register(WorkflowSubsystem, {
 			prefix: "/api/workflow",

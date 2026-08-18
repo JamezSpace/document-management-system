@@ -51,10 +51,20 @@ CREATE TYPE identity.recovery_task_type AS ENUM (
     'email_delivery'
 );
 
--- DOCUMENT SCHEMA TYPES
-CREATE TYPE document.sensitivity_level AS ENUM(
+-- POLICY-OWNED DOCUMENT GOVERNANCE TYPES
+CREATE TYPE policy.document_sensitivity_level AS ENUM(
 	'public', 'internal', 'confidential', 'restricted'
 );
+
+CREATE TYPE policy.document_governance_policy_status AS ENUM(
+	'draft', 'approved', 'active', 'retired'
+);
+
+CREATE TYPE policy.document_governance_rule_effect AS ENUM(
+	'allow', 'deny'
+);
+
+-- DOCUMENT SCHEMA TYPES
 CREATE TYPE document.correspondence_direction AS ENUM(
 	'internal', 'external'
 );
@@ -62,7 +72,7 @@ CREATE TYPE document.lifecycle_state AS ENUM(
 	'draft', 'in_review', 'active', 'declared_record', 'archived', 'cancelled', 'disposed'
 );
 CREATE TYPE document.lifecycle_actions AS ENUM(
-	'save', 'create', 'submit', 'approve', 'reject',  'cancel', 'activate', 'declare_record', 'archive', 'delete',   'dispose'
+	'save', 'create', 'submit', 'approve', 'reject',  'cancel', 'activate', 'declare_record', 'archive', 'delete', 'dispose'
 );
 CREATE TYPE document.minute_action AS ENUM(
 	'comment', 'instruction', 'recommend', 'approve',
@@ -472,7 +482,9 @@ CREATE TABLE document.documents (
     direction document.correspondence_direction NOT NULL,
 
     -- classification metadata
-    sensitivity document.sensitivity_level NOT NULL,
+    sensitivity policy.document_sensitivity_level NOT NULL,
+	governance_policy_key VARCHAR(100),
+	governance_policy_version INT CHECK(governance_policy_version > 0),
     business_function_id varchar(50) REFERENCES document.business_functions(id) NOT NULL,
     document_type_id varchar(50) REFERENCES document.document_type(id) NOT NULL,
 
@@ -674,8 +686,95 @@ CREATE TABLE policy.document_retention (
     effective_from DATE NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-	UNIQUE(document_type_id, policy_version)
+	UNIQUE(document_type_id, policy_version),
+	UNIQUE(document_type_id, effective_from),
+	CHECK(policy_version > 0),
+	CHECK(retention_duration > 0)
 );
+
+CREATE TABLE policy.document_retention_version_counters (
+	document_type_id VARCHAR(50) PRIMARY KEY
+		REFERENCES document.document_type(id) ON DELETE CASCADE,
+	last_version INT NOT NULL CHECK(last_version > 0)
+);
+
+CREATE TABLE policy.document_governance_policies (
+	id VARCHAR(80) PRIMARY KEY,
+	policy_key VARCHAR(100) NOT NULL,
+	policy_version INT NOT NULL CHECK(policy_version > 0),
+	schema_version INT NOT NULL CHECK(schema_version > 0),
+	status policy.document_governance_policy_status NOT NULL DEFAULT 'draft',
+	effective_from TIMESTAMPTZ NOT NULL,
+	effective_to TIMESTAMPTZ,
+	definition_checksum CHAR(64) NOT NULL CHECK(
+		definition_checksum ~ '^[0-9a-fA-F]{64}$'
+	),
+	created_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	approved_by VARCHAR(50) REFERENCES identity.staff(id),
+	approval_reason TEXT,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	approved_at TIMESTAMPTZ,
+	metadata JSONB NOT NULL DEFAULT '{}'::JSONB CHECK(
+		jsonb_typeof(metadata) = 'object'
+	),
+	UNIQUE(policy_key, policy_version),
+	CHECK(effective_to IS NULL OR effective_to > effective_from),
+	CHECK(
+		status = 'draft'
+		OR (approved_by IS NOT NULL AND approved_at IS NOT NULL)
+	)
+);
+
+CREATE UNIQUE INDEX document_governance_one_active_policy
+	ON policy.document_governance_policies(policy_key)
+	WHERE status = 'active';
+
+CREATE TABLE policy.document_governance_rules (
+	id VARCHAR(80) PRIMARY KEY,
+	governance_policy_id VARCHAR(80) NOT NULL
+		REFERENCES policy.document_governance_policies(id) ON DELETE CASCADE,
+	sensitivity policy.document_sensitivity_level,
+	action VARCHAR(80) NOT NULL,
+	effect policy.document_governance_rule_effect NOT NULL,
+	conditions JSONB NOT NULL DEFAULT '{}'::JSONB CHECK(
+		jsonb_typeof(conditions) = 'object'
+	),
+	obligations TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+	reason_code VARCHAR(120) NOT NULL,
+	priority INT NOT NULL DEFAULT 100 CHECK(priority >= 0),
+	created_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX document_governance_scoped_rule_identity
+	ON policy.document_governance_rules(
+		governance_policy_id,
+		sensitivity,
+		action,
+		priority
+	)
+	WHERE sensitivity IS NOT NULL;
+
+CREATE UNIQUE INDEX document_governance_global_rule_identity
+	ON policy.document_governance_rules(
+		governance_policy_id,
+		action,
+		priority
+	)
+	WHERE sensitivity IS NULL;
+
+CREATE INDEX document_governance_rule_lookup
+	ON policy.document_governance_rules(
+		governance_policy_id,
+		sensitivity,
+		action,
+		priority
+	);
+
+ALTER TABLE document.documents
+	ADD CONSTRAINT documents_governance_policy_version_fk
+	FOREIGN KEY (governance_policy_key, governance_policy_version)
+	REFERENCES policy.document_governance_policies(policy_key, policy_version);
 
 CREATE TABLE policy.approval_workflow_steps (
     id VARCHAR(50) PRIMARY KEY,
