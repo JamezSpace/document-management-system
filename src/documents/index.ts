@@ -43,9 +43,11 @@ import MinuteRepositoryAdapter from "./infrastructure/persistence/MinuteReposito
 import ReferenceSequenceRepositoryAdapter from "./infrastructure/persistence/ReferenceSequenceRepository.adapter.js";
 import ReferenceNumberService from "./infrastructure/services/ReferenceNumberService.adapter.js";
 import type { DocumentIdentityPort } from "../shared/application/port/intersubsystem/DocumentIdentity.port.js";
+import type { DocumentGovernancePolicyPort } from "../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 
 interface DocumentSubsystemDependencies {
     documentIdentityAdapter: DocumentIdentityPort;
+	documentGovernancePolicy: DocumentGovernancePolicyPort;
 	retentionService: RetentionServicePort;
     globalEventBus: EventBusPort
 }
@@ -96,8 +98,9 @@ export default async function DocumentSubsystem(
 		docTypeRepository,
 		documentEventsAdapter,
 		refNumberService,
-        documentIdentityAdapter,
+		documentIdentityAdapter,
 		retentionService,
+		dependencies.documentGovernancePolicy,
 		transactionManager,
 	);
 
@@ -204,6 +207,7 @@ export default async function DocumentSubsystem(
 
 	await fastify.register(documentRoutes, {
 		controller: documentController,
+		documentGovernancePolicy: dependencies.documentGovernancePolicy,
 	});
 
 	await fastify.register(correspondenceSubjectRoutes, {

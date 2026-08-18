@@ -33,12 +33,31 @@ try {
 	for (const migration of migrationFiles) {
 		const existing = applied.get(migration.version);
 		if (existing) {
-			if (
-				existing.name !== migration.name ||
-				existing.checksum.trim() !== migration.checksum
-			) {
+			const recordedChecksum = existing.checksum.trim();
+			if (existing.name !== migration.name) {
 				throw new Error(
 					`Applied migration ${migration.version} differs from ${migration.fileName}`,
+				);
+			}
+			if (!migration.compatibleChecksums.includes(recordedChecksum)) {
+				throw new Error(
+					`Applied migration ${migration.version} differs from ${migration.fileName}`,
+				);
+			}
+			if (recordedChecksum !== migration.checksum) {
+				const reconciliation = await client.query(
+					`UPDATE public.schema_migrations
+					 SET checksum = $1
+					 WHERE version = $2 AND checksum = $3;`,
+					[migration.checksum, migration.version, recordedChecksum],
+				);
+				if (reconciliation.rowCount !== 1) {
+					throw new Error(
+						`Could not canonicalize checksum for ${migration.fileName}`,
+					);
+				}
+				console.log(
+					`Canonicalized checksum for ${migration.fileName}`,
 				);
 			}
 			continue;

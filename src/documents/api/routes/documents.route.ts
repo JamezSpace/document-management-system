@@ -5,7 +5,7 @@ import type DocumentController from "../controllers/document/DocumentController.
 import {
     docStaffIdSchema,
     documentIdSchema,
-    documentSchemaForCreation,
+	createDocumentSchemaForCreation,
     documentSchemaForSave,
 	saveDocumentContentCommandSchema,
     type DocStaffIdSchemaType,
@@ -14,6 +14,7 @@ import {
     type DocumentSchemaTypeForCreation,
 	type SaveDocumentContentCommandType,
 } from "../types/document.type.js";
+import type { DocumentGovernancePolicyPort } from "../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 
@@ -21,6 +22,7 @@ async function documentRoutes(
 	fastify: FastifyInstance,
 	options: {
 		controller: DocumentController;
+		documentGovernancePolicy: DocumentGovernancePolicyPort;
 	},
 ) {
 	const documentController = options.controller;
@@ -32,7 +34,11 @@ async function documentRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.CREATE),
 			},
-			schema: { body: documentSchemaForCreation },
+			schema: {
+				body: createDocumentSchemaForCreation(
+					options.documentGovernancePolicy.getSensitivityLevels(),
+				),
+			},
 		},
 		async (
 			request: FastifyRequest<{ Body: DocumentSchemaTypeForCreation }>,

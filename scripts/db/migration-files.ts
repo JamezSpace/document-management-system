@@ -9,6 +9,7 @@ interface MigrationFile {
 	fileName: string;
 	path: string;
 	checksum: string;
+	compatibleChecksums: readonly string[];
 	sql: string;
 }
 
@@ -50,6 +51,7 @@ async function loadMigrationFiles(): Promise<MigrationFile[]> {
 
 		const migrationPath = path.join(migrationsDirectory, fileName);
 		const sql = await readFile(migrationPath, "utf8");
+		const canonicalSql = sql.replace(/\r\n/g, "\n");
 		if (sql.trim().length === 0) {
 			throw new Error(`Migration ${fileName} is empty`);
 		}
@@ -59,12 +61,20 @@ async function loadMigrationFiles(): Promise<MigrationFile[]> {
 			);
 		}
 
+		const checksum = createHash("sha256")
+			.update(canonicalSql)
+			.digest("hex");
+		const crlfChecksum = createHash("sha256")
+			.update(canonicalSql.replace(/\n/g, "\r\n"))
+			.digest("hex");
+
 		migrations.push({
 			version,
 			name: match[2]!,
 			fileName,
 			path: migrationPath,
-			checksum: createHash("sha256").update(sql).digest("hex"),
+			checksum,
+			compatibleChecksums: [...new Set([checksum, crlfChecksum])],
 			sql,
 		});
 	}

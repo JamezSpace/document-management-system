@@ -99,6 +99,18 @@ export const AccessDomainErrors = {
 } as const satisfies Record<string, ErrorDefinition>;
 
 export const DocumentDomainErrors = {
+	INVALID_GOVERNANCE_POLICY: {
+		codeName: "invalid_governance_policy",
+		httpStatusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+		category: ErrorCategory.POLICY,
+		retryable: false,
+	},
+	INVALID_RETENTION_POLICY: {
+		codeName: "invalid_retention_policy",
+		httpStatusCode: StatusCodes.BAD_REQUEST,
+		category: ErrorCategory.VALIDATION,
+		retryable: false,
+	},
 	INVALID_DOCUMENT_STATE_TRANSITION: {
 		codeName: "invalid_document_state",
 		httpStatusCode: StatusCodes.BAD_REQUEST,

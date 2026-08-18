@@ -1,4 +1,5 @@
 import type { DocumentIdentityPort } from "../../../../shared/application/port/intersubsystem/DocumentIdentity.port.js";
+import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import type { IdGeneratorPort } from "../../../../shared/application/port/services/IdGenerator.port.js";
 import type { TransactionManager } from "../../../../shared/application/port/TransactionManager.port.js";
 import ApplicationError from "../../../../shared/errors/ApplicationError.error.js";
@@ -28,6 +29,7 @@ class DocumentCreationUseCase {
 		private readonly refNumService: ReferenceNumberServicePort,
 		private readonly documentIdentity: DocumentIdentityPort,
 		private readonly retentionService: RetentionServicePort,
+		private readonly documentGovernancePolicy: DocumentGovernancePolicyPort,
 		private readonly transactionManager: TransactionManager,
 	) {}
 
@@ -40,6 +42,8 @@ class DocumentCreationUseCase {
 
 		const result = await this.transactionManager.execute(
 			async (transactionInstance) => {
+				const governancePolicy =
+					await this.documentGovernancePolicy.getActivePolicyReference();
 				const retention = await this.retentionService.computeRetention(
 					docTypeId,
 					new Date(),
@@ -116,6 +120,11 @@ class DocumentCreationUseCase {
 					retention,
 					referenceNumber,
 					...payload,
+					classification: {
+						...payload.classification,
+						governancePolicyKey: governancePolicy.policyId,
+						governancePolicyVersion: governancePolicy.policyVersion,
+					},
 					addressees,
 				});
 

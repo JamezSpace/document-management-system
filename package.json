@@ -9,6 +9,7 @@
 		"test:build": "tsc --outDir .test-dist --declaration false --declarationMap false --sourceMap false",
 		"test:access": "pnpm run test:build && node --test .test-dist/test/access/RoleAssignment.test.js .test-dist/test/access/ResolveStaffAuthority.test.js",
 		"test:security": "pnpm run test:build && node --test .test-dist/test/security/AuthorizationHooks.test.js",
+		"test:policy": "node --import tsx --test test/policy/*.test.ts",
 		"test:workflow": "pnpm run test:build && node --test .test-dist/test/workflow/ApproverResolverService.test.js .test-dist/test/workflow/WorkflowTask.test.js .test-dist/test/workflow/WorkflowTaskUseCases.test.js",
 		"typecheck": "tsc --noEmit --pretty false",
 		"db:migrate": "tsx --env-file=.env scripts/db/migrate.ts",

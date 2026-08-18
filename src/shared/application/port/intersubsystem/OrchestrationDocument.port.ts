@@ -1,7 +1,6 @@
 import type Document from "../../../../documents/domain/entities/document/Document.js";
 import { CorrespondenceDirection } from "../../../../documents/domain/enum/correspondenceDirection.enum.js";
 import { LifecycleState } from "../../../../documents/domain/enum/lifecycleState.enum.js";
-import { SensitivityLevel } from "../../../../documents/domain/enum/sensitivityLevel.enum.js";
 import type { TransactionContext } from "../../../infrastructure/persistence/primary/postgres.js";
 
 interface OrchestrationDocumentPort {
@@ -14,6 +13,5 @@ interface OrchestrationDocumentPort {
 export type {OrchestrationDocumentPort, Document};
 export {
     LifecycleState as DocumentLifecycleState,
-    SensitivityLevel as DocumentSensitivityLevel,
     CorrespondenceDirection as DocumentCorrespondenceDirection
 };

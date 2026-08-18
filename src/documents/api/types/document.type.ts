@@ -2,7 +2,7 @@ import { Type, type Static } from "@fastify/type-provider-typebox";
 import { CorrespondenceDirection } from "../../domain/enum/correspondenceDirection.enum.js";
 import { LifecycleActions } from "../../domain/enum/lifecycleActions.enum.js";
 import { LifecycleState } from "../../domain/enum/lifecycleState.enum.js";
-import { SensitivityLevel } from "../../domain/enum/sensitivityLevel.enum.js";
+import type { GovernanceDocumentSensitivity } from "../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 
 const documentIdSchema = Type.Object({
 	docId: Type.String(),
@@ -25,8 +25,15 @@ const documentVersionSchema = Type.Object({
 	}),
 });
 
-const documentSchemaForCreation = Type.Object(
-	{
+function createDocumentSchemaForCreation(
+	sensitivityLevels: readonly GovernanceDocumentSensitivity[],
+) {
+	const sensitivitySchema = Type.Union(
+		sensitivityLevels.map((level) => Type.Literal(level)),
+	);
+
+	return Type.Object(
+		{
 		title: Type.String(),
 		action: Type.Enum(LifecycleActions),
 
@@ -43,11 +50,12 @@ const documentSchemaForCreation = Type.Object(
 		// classification
 		functionCode: Type.String(),
 		functionCodeId: Type.String(),
-		sensitivity: Type.Enum(SensitivityLevel),
+		sensitivity: sensitivitySchema,
 		documentTypeId: Type.String(),
-	},
-	{ additionalProperties: false },
-);
+		},
+		{ additionalProperties: false },
+	);
+}
 
 const documentSchema = Type.Object({
 	id: Type.String({ minLength: 3 }),
@@ -79,7 +87,15 @@ const documentSchema = Type.Object({
 	),
 
 	classification: Type.Object({
-		sensitivity: Type.Enum(SensitivityLevel),
+		sensitivity: Type.Unsafe<GovernanceDocumentSensitivity>({
+			type: "string",
+		}),
+		governancePolicyKey: Type.Optional(
+			Type.Union([Type.String(), Type.Null()]),
+		),
+		governancePolicyVersion: Type.Optional(
+			Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
+		),
 		functionCodeId: Type.String(),
 		documentTypeId: Type.String(),
 		classifiedBy: Type.String(),
@@ -135,13 +151,15 @@ type SaveDocumentContentCommandType = Static<
 	typeof saveDocumentContentCommandSchema
 >;
 type DocumentVersionSchemaType = Static<typeof documentVersionSchema>;
-type DocumentSchemaTypeForCreation = Static<typeof documentSchemaForCreation>;
+type DocumentSchemaTypeForCreation = Static<
+	ReturnType<typeof createDocumentSchemaForCreation>
+>;
 
 export {
 	docStaffIdSchema,
 	documentIdSchema,
 	documentSchema,
-	documentSchemaForCreation,
+	createDocumentSchemaForCreation,
 	documentSchemaForSave,
 	saveDocumentContentCommandSchema,
 	documentVersionSchema,

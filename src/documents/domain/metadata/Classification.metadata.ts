@@ -1,16 +1,17 @@
-import type { SensitivityLevel } from "../enum/sensitivityLevel.enum.js";
+import type { GovernanceDocumentSensitivity } from "../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 
 interface ClassificationMetadata {
-  sensitivity: SensitivityLevel;
-  functionCodeId: string;
-  documentTypeId: string;
+	sensitivity: GovernanceDocumentSensitivity;
+	governancePolicyKey?: string | null;
+	governancePolicyVersion?: number | null;
+	functionCodeId: string;
+	documentTypeId: string;
 
-  classifiedBy: string;
-  classifiedAt: Date;
+	classifiedBy: string;
+	classifiedAt: Date;
 
-  lastReclassifiedAt?: Date | null;
-  lastReclassifiedBy?: string | null;
+	lastReclassifiedAt?: Date | null;
+	lastReclassifiedBy?: string | null;
 }
 
 export type { ClassificationMetadata };
-
