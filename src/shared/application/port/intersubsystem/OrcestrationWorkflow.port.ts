@@ -6,7 +6,7 @@ interface WorkflowContext {
 }
 
 interface OrchestrationWorkflowPort {
-    getWorkflowContext(documentId: string): Promise<WorkflowContext>;
+    getWorkflowContext(documentId: string): Promise<WorkflowContext | null>;
 }
 
 export type {OrchestrationWorkflowPort, WorkflowContext};

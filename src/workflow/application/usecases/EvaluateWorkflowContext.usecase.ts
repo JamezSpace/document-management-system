@@ -1,7 +1,5 @@
 import type { OrchestrationWorkflowPort, WorkflowContext } from "../../../shared/application/port/intersubsystem/OrcestrationWorkflow.port.js";
 import type { WorkflowPolicyPort } from "../../../shared/application/port/intersubsystem/WorkflowPolicy.port.js";
-import ApplicationError from "../../../shared/errors/ApplicationError.error.js";
-import { ApplicationErrorEnum } from "../../../shared/errors/enum/application.enum.js";
 import type WorkflowInstance from "../../domain/entities/WorkflowInstance.js";
 import { WorkflowStatus } from "../../domain/enum/WorkflowStatus.enum.js";
 import type WorkflowEngine from "../../domain/WorkflowEngine.service.js";
@@ -40,13 +38,10 @@ class EvaluateWorkflowContextUsecase implements OrchestrationWorkflowPort {
         return workflow.status === WorkflowStatus.REJECTED;
     }
 
-    async getWorkflowContext(documentId: string): Promise<WorkflowContext> {
+    async getWorkflowContext(documentId: string): Promise<WorkflowContext | null> {
         const workflow = await this.workflowRepository.getInstanceByDocumentId(documentId);
 
-        if(!workflow) 
-            throw new ApplicationError(ApplicationErrorEnum.WRKFLOW_NOT_FOUND, {
-                message: `Workflow doesn't exist for document with id '${documentId}'`
-            })
+        if (!workflow) return null;
 
         
         const canAdvance = await this.canTransitionToNextStep(workflow);

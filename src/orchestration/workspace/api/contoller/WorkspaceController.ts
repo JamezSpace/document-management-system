@@ -14,17 +14,13 @@ class WorkspaceController {
         // fetch necessary items for workspace
         const staffActor = { id: actorStaffId };
         const document = await this.getDocumentUsecase.execute(documentId);
-        const workflowContext = await this.getWorkflowContextUsecase.execute(documentId);
 
-        if(!document) 
+		if (!document)
             throw new ApiError(ApiErrorEnum.NOT_FOUND, {
                 message: 'Document not found'
             });
 
-        if(!workflowContext) 
-            throw new ApiError(ApiErrorEnum.NOT_FOUND, {
-                message: `Workflow for doc ${documentId} not found`
-            });
+        const workflowContext = await this.getWorkflowContextUsecase.execute(documentId);
         
         const permissions = await WorkspacePolicyEvaluator.eval(document, workflowContext, staffActor);
         return permissions;

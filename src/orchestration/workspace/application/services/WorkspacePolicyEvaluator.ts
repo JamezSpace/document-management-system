@@ -49,7 +49,7 @@ class WorkspacePolicyEvaluator {
 
 	static getAuthorizedWorkflowActions(
 		document: Document,
-		workflowContext: WorkflowContext,
+		workflowContext: WorkflowContext | null,
 	): WorkspaceActions[] {
 		const actions: WorkspaceActions[] = [];
 		const docDirection = document.correspondence.direction;
@@ -63,7 +63,10 @@ class WorkspacePolicyEvaluator {
 		}
 
         // docs that arent in review dont have any ongoing workflow
-		if (docState !== DocumentLifecycleState.IN_REVIEW) 
+		if (
+			docState !== DocumentLifecycleState.IN_REVIEW ||
+			!workflowContext
+		)
             return actions;
 
 		const canAdvanceResult = this.canAdvance(workflowContext);
@@ -114,7 +117,7 @@ class WorkspacePolicyEvaluator {
 
 	static async eval(
 		document: Document,
-		workflowContext: WorkflowContext,
+		workflowContext: WorkflowContext | null,
 		actor: Staff,
 	) {
 		// find if actor is author
