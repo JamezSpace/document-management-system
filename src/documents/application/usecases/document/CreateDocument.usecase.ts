@@ -59,20 +59,20 @@ class DocumentCreationUseCase {
 						},
 					);
 
-				if (documentType.code === "memo") {
-					const primaryAddressee = payload.addressees.find(
-						(addr) => addr.isPrimary,
+				const primaryAddressee = payload.addressees.find(
+					(addr) => addr.isPrimary,
+				);
+
+				if (!primaryAddressee) {
+					throw new ApplicationError(
+						ApplicationErrorEnum.NOT_ALLOWED,
+						{
+							message: "Primary addressee is required",
+						},
 					);
+				}
 
-					if (!primaryAddressee) {
-						throw new ApplicationError(
-							ApplicationErrorEnum.NOT_ALLOWED,
-							{
-								message: "Primary addressee is required",
-							},
-						);
-					}
-
+				if (documentType.code === "memo") {
 					referenceNumber = await this.refNumService.generate({
 						year: new Date().getFullYear(),
 						subjectCode: payload.correspondence.subjectCode,
@@ -80,20 +80,35 @@ class DocumentCreationUseCase {
 						originUnitId: payload.correspondence.originatingUnitId,
 						recipientUnitId: primaryAddressee.recipientUnitId,
 					});
-
-					if (payload.correspondence.direction === "external") {
-						const recipientUnitId =
-							primaryAddressee.recipientUnitId;
-
-						// resolve the director or unit head of that unit
-						const unitHeadDesignation =
-							await this.documentIdentity.resolveUnitHeadDesignation(recipientUnitId);
-
-						// address the doc to the director
-						primaryAddressee.addressedToDesignationId =
-							unitHeadDesignation.id;
-					}
 				}
+
+				if (payload.correspondence.direction === "external") {
+					const unitHeadDesignation =
+						await this.documentIdentity.resolveUnitHeadDesignation(
+							primaryAddressee.recipientUnitId,
+						);
+
+					primaryAddressee.addressedToDesignationId = unitHeadDesignation.id;
+				}
+
+				const addressees = payload.addressees.map((addressee) => {
+					if (!addressee.addressedToDesignationId) {
+						throw new ApplicationError(
+							ApplicationErrorEnum.INCOMPLETE_REQUEST,
+							{
+								message: "Addressee designation is required",
+								details: {
+									recipientUnitId: addressee.recipientUnitId,
+								},
+							},
+						);
+					}
+
+					return {
+						...addressee,
+						addressedToDesignationId: addressee.addressedToDesignationId,
+					};
+				});
 
 				const newDocument = new Document({
 					id: docId,
@@ -101,6 +116,7 @@ class DocumentCreationUseCase {
 					retention,
 					referenceNumber,
 					...payload,
+					addressees,
 				});
 
 				const savedDoc = await this.documentRepo.save(
@@ -109,7 +125,7 @@ class DocumentCreationUseCase {
 				);
 
 				const savedDocAddressees = await Promise.all(
-					payload.addressees.map((addr) =>
+					addressees.map((addr) =>
 						this.documentAddresseeRepo.save(
 							{
 								documentId: docId,

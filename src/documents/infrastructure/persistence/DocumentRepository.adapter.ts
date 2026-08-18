@@ -4,6 +4,7 @@ import {
     GlobalInfrastructureErrors,
 } from "../../../shared/errors/enum/infrastructure.enum.js";
 import InfrastructureError from "../../../shared/errors/InfrastructureError.error.js";
+import NexusError from "../../../shared/errors/NexusError.js";
 import { mapPostgresError } from "../../../shared/infrastructure/persistence/primary/helpers/mapPostgresError.helper.js";
 import type { TransactionContext } from "../../../shared/infrastructure/persistence/primary/postgres.js";
 import type { DocumentRepositoryPort } from "../../application/ports/repos/DocumentRepository.port.js";
@@ -125,12 +126,10 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 
 			const dbResponse = result.rows[0];
 
-            console.log(dbResponse);
-            
-			return this.toDomain(dbResponse);
+			return this.toDomain(dbResponse, document.addressees);
 		} catch (error: any) {
-            console.log(error);
-            
+			if (error instanceof NexusError) throw error;
+
 			const postgresError = mapPostgresError(error);
 
 			throw new InfrastructureError(postgresError.summary, {

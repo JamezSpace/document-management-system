@@ -3,6 +3,11 @@ import type { AddresseeMetadata } from "../../domain/metadata/Addressee.metadata
 import type { ClassificationMetadata } from "../../domain/metadata/Classification.metadata.js";
 import type { CorrespondenceMetadata } from "../../domain/metadata/Correspondence.metadata.js";
 
+interface AddresseeMetadataForCreation
+	extends Omit<AddresseeMetadata, "addressedToDesignationId"> {
+	addressedToDesignationId: string | null;
+}
+
 interface ClassificationMetadataWithFunctionCode extends ClassificationMetadata{
     functionCode: string;
 }
@@ -20,7 +25,7 @@ interface DocumentTypeForCreation {
     correspondence: CorrespondenceMetadataWithSubjectCode;
     
     // addressees
-    addressees: AddresseeMetadata[]
+	addressees: AddresseeMetadataForCreation[];
 }
 
 export type { DocumentTypeForCreation };
