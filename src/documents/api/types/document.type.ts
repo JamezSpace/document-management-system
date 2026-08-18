@@ -30,20 +30,20 @@ const documentSchemaForCreation = Type.Object(
 		title: Type.String(),
 		action: Type.Enum(LifecycleActions),
 
-	// addressee
-	recipientUnitId: Type.String(),
-	addressedToDesignationId: Type.String(),
+		// addressee
+		recipientUnitId: Type.String(),
+		addressedToDesignationId: Type.Union([Type.String(), Type.Null()]),
 
-	// correspondence
-	originatingUnitId: Type.String(),
-	subjectCodeId: Type.String(),
-	subjectCode: Type.String(),
-	direction: Type.Enum(CorrespondenceDirection),
+		// correspondence
+		originatingUnitId: Type.String(),
+		subjectCodeId: Type.String(),
+		subjectCode: Type.String(),
+		direction: Type.Enum(CorrespondenceDirection),
 
-	// classification
-	functionCode: Type.String(),
-	functionCodeId: Type.String(),
-	sensitivity: Type.Enum(SensitivityLevel),
+		// classification
+		functionCode: Type.String(),
+		functionCodeId: Type.String(),
+		sensitivity: Type.Enum(SensitivityLevel),
 		documentTypeId: Type.String(),
 	},
 	{ additionalProperties: false },
@@ -70,11 +70,13 @@ const documentSchema = Type.Object({
 		createdBy: Type.String(),
 	}),
 
-	addressees: Type.Array(Type.Object({
-		recipientUnitId: Type.String(),
-		addressedToDesignationId: Type.String(),
-        isPrimary: Type.Boolean()
-	})),
+	addressees: Type.Array(
+		Type.Object({
+			recipientUnitId: Type.String(),
+			addressedToDesignationId: Type.String(),
+			isPrimary: Type.Boolean(),
+		}),
+	),
 
 	classification: Type.Object({
 		sensitivity: Type.Enum(SensitivityLevel),
@@ -129,7 +131,9 @@ type DocumentSchemaType = Static<typeof documentSchema>;
 type DocumentIdSchemaType = Static<typeof documentIdSchema>;
 type DocStaffIdSchemaType = Static<typeof docStaffIdSchema>;
 type DocumentSchemaForSaveType = Static<typeof documentSchemaForSave>;
-type SaveDocumentContentCommandType = Static<typeof saveDocumentContentCommandSchema>;
+type SaveDocumentContentCommandType = Static<
+	typeof saveDocumentContentCommandSchema
+>;
 type DocumentVersionSchemaType = Static<typeof documentVersionSchema>;
 type DocumentSchemaTypeForCreation = Static<typeof documentSchemaForCreation>;
 

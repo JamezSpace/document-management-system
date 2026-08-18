@@ -44,7 +44,7 @@ class StaffReportingRepositoryAdapter implements StaffReportingRepositoryPort {
 
 			return this.mapStaffReportingRow(result.rows[0]);
 		} catch (error: any) {
-			console.log("error in staff reporting repo adapter", error);
+			console.error("Error in staff reporting repo adapter", error);
 
 			const postgresError = mapPostgresError(error);
 

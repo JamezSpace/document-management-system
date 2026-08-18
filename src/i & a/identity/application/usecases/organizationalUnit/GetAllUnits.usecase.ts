@@ -15,10 +15,7 @@ class GetAllUnitsUseCase {
 		}
 
 		// Second pass: assign children
-		for (const unit of units) {
-            console.log("unit", unit);
-            console.log("parent id", unit.parentId);
-            
+		for (const unit of units) {            
 			if (unit.parentId) {
 				const parent = map.get(unit.parentId);
 				if (parent) {

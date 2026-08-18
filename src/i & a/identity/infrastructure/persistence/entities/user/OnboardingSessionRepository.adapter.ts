@@ -82,7 +82,7 @@ class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryP
 
 			return this.toSession(result.rows[0]);
 		} catch (error: any) {
-			console.log("error saving onboarding session", error);
+			console.error("Error saving onboarding session", error);
 
 			const err = mapPostgresError(error);
 
@@ -104,7 +104,7 @@ class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryP
 
 			return this.toSession(result.rows[0]);
 		} catch (error: any) {
-			console.log("error fetching onboarding session by id", error);
+			console.error("Error fetching onboarding session by id", error);
 
 			const err = mapPostgresError(error);
 
@@ -128,7 +128,7 @@ class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryP
 
 			return this.toSession(result.rows[0]);
 		} catch (error: any) {
-			console.log("error fetching onboarding session by invite id", error);
+			console.error("Error fetching onboarding session by invite id", error);
 
 			const err = mapPostgresError(error);
 
@@ -214,7 +214,7 @@ class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryP
 
 			return this.toSession(result.rows[0]);
 		} catch (error: any) {
-			console.log("error updating onboarding session", error);
+			console.error("Error updating onboarding session", error);
 
 			const err = mapPostgresError(error);
 
@@ -239,7 +239,7 @@ class OnboardingSessionRepositoryAdapter implements OnboardingSessionRepositoryP
                 return this.toSessionView(session);
             })
 		} catch (error: any) {
-			console.log("error fetching onboarding session by invite id", error);
+			console.error("Error fetching onboarding session by invite id", error);
 
 			const err = mapPostgresError(error);
 

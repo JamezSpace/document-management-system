@@ -27,7 +27,7 @@ class OrgUnitRepositoryAdapter implements OrgUnitRepositoryPort {
 
 			return result.rows[0];
 		} catch (error: any) {
-			console.log("error in org unit repo adapter", error);
+			console.error("Error in org unit repo adapter", error);
 
 			const postgresError = mapPostgresError(error);
 

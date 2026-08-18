@@ -53,7 +53,7 @@ class IdentityRepositoryAdapter implements IdentityRepositoryPort {
 
 			return this.toIdentity(row);
 		} catch (error: any) {
-			console.log("error in postgres adapter", error);
+			console.error("Error in postgres adapter", error);
 
             const err = mapPostgresError(error);
 
@@ -81,7 +81,7 @@ class IdentityRepositoryAdapter implements IdentityRepositoryPort {
 			// map DB row to domain
 			return this.toIdentity(row);
 		} catch (error: any) {
-			console.log("error in postgres adapter", error);
+			console.error("Error in postgres adapter", error);
 
             const err = mapPostgresError(error);
 
@@ -103,7 +103,7 @@ class IdentityRepositoryAdapter implements IdentityRepositoryPort {
 
 			return result.rows.map((row) => this.toIdentity(row));
 		} catch (error: any) {
-			console.log("error in identity repo adapter", error);
+			console.error("Error in identity repo adapter", error);
 
 			const err = mapPostgresError(error);
 
@@ -140,7 +140,7 @@ class IdentityRepositoryAdapter implements IdentityRepositoryPort {
 
 			return this.toIdentity(result.rows[0]);
 		} catch (error: any) {
-			console.log("error in identity repo adapter", error);
+			console.error("Error in identity repo adapter", error);
 
 			const err = mapPostgresError(error);
 

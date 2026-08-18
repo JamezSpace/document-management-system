@@ -33,7 +33,7 @@ class DocumentRetentionPolicyAdapter
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
 
-			console.log(error);
+			console.error(error);
 
 			throw new InfrastructureError(postgresError.summary, {
 				category: Category.PERSISTENCE,
@@ -77,7 +77,7 @@ class DocumentRetentionPolicyAdapter
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
 
-			console.log(error);
+			console.error(error);
 
 			throw new InfrastructureError(postgresError.summary, {
 				category: Category.PERSISTENCE,

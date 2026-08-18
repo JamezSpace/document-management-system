@@ -32,7 +32,7 @@ class WorkflowAccessRepositoryAdapter implements WorkflowAccessPort {
 
 			return { supervisorId: result.rows[0].supervisor_id };
 		} catch (error: any) {
-			console.log("error fetching active supervisor", error);
+			console.error("Error fetching active supervisor", error);
 
 			const postgresError = mapPostgresError(error);
 
@@ -82,7 +82,7 @@ class WorkflowAccessRepositoryAdapter implements WorkflowAccessPort {
 
 			return { supervisorId: result.rows[0].supervisor_id };
 		} catch (error: any) {
-			console.log("error fetching supervisor by hierarchy", error);
+			console.error("Error fetching supervisor by hierarchy", error);
 
 			const postgresError = mapPostgresError(error);
 
@@ -138,7 +138,7 @@ class WorkflowAccessRepositoryAdapter implements WorkflowAccessPort {
 
 			return result.rows.map((row) => row.staff_id);
 		} catch (error: any) {
-			console.log("error fetching role assignments by scope", error);
+			console.error("Error fetching role assignments by scope", error);
 
 			const postgresError = mapPostgresError(error);
 

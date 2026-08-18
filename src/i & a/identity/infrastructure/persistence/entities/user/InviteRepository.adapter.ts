@@ -61,7 +61,7 @@ class InviteRepositoryAdapter implements InviteRepositoryPort {
 
 			return this.toInvite(result.rows[0]);
 		} catch (error: any) {
-			console.log("error in invite repo adapter", error);
+			console.error("Error in invite repo adapter", error);
 
 			const err = mapPostgresError(error);
 
@@ -86,7 +86,7 @@ class InviteRepositoryAdapter implements InviteRepositoryPort {
 
 			return this.toInvite(row);
 		} catch (error: any) {
-			console.log("error in postgres adapter", error);
+			console.error("Error in postgres adapter", error);
 
 			const err = mapPostgresError(error);
 
@@ -118,7 +118,7 @@ class InviteRepositoryAdapter implements InviteRepositoryPort {
 
 			return this.toInvite(row);
 		} catch (error: any) {
-			console.log("error in postgres adapter", error);
+			console.error("Error in postgres adapter", error);
 
 			const err = mapPostgresError(error);
 
@@ -238,7 +238,7 @@ class InviteRepositoryAdapter implements InviteRepositoryPort {
 
 			return this.toInvite(result.rows[0]);
 		} catch (error: any) {
-			console.log("error updating invite", error);
+			console.error("Error updating invite", error);
 
 			const err = mapPostgresError(error);
 

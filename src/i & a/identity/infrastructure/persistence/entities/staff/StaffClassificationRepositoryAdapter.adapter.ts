@@ -122,7 +122,7 @@ class StaffClassificationRepositoryAdapter implements StaffClassificationReposit
                 updatedAt: staffClassFromDb.updated_at
             });
         } catch (error : any) {
-              console.log("error fetching staff by id", error);
+              console.error("Error fetching staff by id", error);
 
             throw new InfrastructureError(GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR, {
                 category: Category.PERSISTENCE,

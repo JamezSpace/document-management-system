@@ -193,7 +193,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				activatedAt: staffData.activatedAt,
 			});
 		} catch (error: any) {
-			console.log("error fetching staff by id", error);
+			console.error("Error fetching staff by id", error);
 
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
@@ -230,7 +230,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				activatedAt: staffData.activatedAt,
 			});
 		} catch (error: any) {
-			console.log("error fetching staff by id", error);
+			console.error("Error fetching staff by id", error);
 
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
@@ -256,7 +256,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 
 			return this.toStaffDetailsWithMedia(result.rows);
 		} catch (error: any) {
-			console.log("error fetching staff details by id", error);
+			console.error("Error fetching staff details by id", error);
 
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
@@ -291,7 +291,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				this.toStaffDetailsWithMedia(rows),
 			);
 		} catch (error: any) {
-			console.log("error fetching staff details with media", error);
+			console.error("Error fetching staff details with media", error);
 
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
@@ -319,7 +319,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				);
 			}
 		} catch (error: any) {
-			console.log("error deleting staff", error);
+			console.error("Error deleting staff", error);
 
 			const postgresError = mapPostgresError(error);
 
@@ -368,7 +368,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				activatedAt: newStaff.activatedAt,
 			});
 		} catch (error: any) {
-			console.log("error in staff repo adapter", error);
+			console.error("Error in staff repo adapter", error);
 
 			const postgresError = mapPostgresError(error);
 
@@ -463,7 +463,7 @@ class StaffRepositoryAdapter implements StaffRepositoryPort {
 				activatedAt: updatedStaff.activatedAt,
 			});
 		} catch (error: any) {
-			console.log("error updating staff", error);
+			console.error("Error updating staff", error);
 			throw new InfrastructureError(
 				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
 				{

@@ -27,7 +27,7 @@ class ActivationOrchestratorUseCase {
 
 			return activatedStaff;
 		} catch (error: any) {
-            console.log(error);
+            console.error(error);
             
 			// track failure
 			await this.activationFailureRepo.recordFailure({

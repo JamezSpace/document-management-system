@@ -42,7 +42,7 @@ class BusinessFunctionRepoAdapter
 		} catch (error: any) {
 			const postgresError = mapPostgresError(error);
 
-            console.log(error)
+            console.error(error)
 
 			throw new InfrastructureError(
 				postgresError.summary,
