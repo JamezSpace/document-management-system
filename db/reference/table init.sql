@@ -487,8 +487,8 @@ CREATE TABLE document.documents (
 
     -- classification metadata
     sensitivity policy.document_sensitivity_level NOT NULL,
-	governance_policy_key VARCHAR(100),
-	governance_policy_version INT CHECK(governance_policy_version > 0),
+	governance_policy_key VARCHAR(100) NOT NULL,
+	governance_policy_version INT NOT NULL CHECK(governance_policy_version > 0),
     business_function_id varchar(50) REFERENCES document.business_functions(id) NOT NULL,
     document_type_id varchar(50) REFERENCES document.document_type(id) NOT NULL,
 

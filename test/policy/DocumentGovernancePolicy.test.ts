@@ -43,7 +43,7 @@ function rule(payload: {
 function policy(rules: DocumentGovernanceRule[]) {
 	return new DocumentGovernancePolicy({
 		id: "POLICY-ROW-1",
-		policyKey: "NEXUSFONS-DOCUMENT-GOVERNANCE",
+		policyKey: "nexusfons_document_governance",
 		policyVersion: 1,
 		schemaVersion: 1,
 		status: DocumentGovernancePolicyStatus.ACTIVE,
@@ -70,7 +70,7 @@ test("the hydrated policy preserves its database identity and version", () => {
 	const hydrated = policy([
 		rule({ action: DocumentGovernanceAction.VIEW, reasonCode: "view" }),
 	]);
-	assert.equal(hydrated.policyKey, "NEXUSFONS-DOCUMENT-GOVERNANCE");
+	assert.equal(hydrated.policyKey, "nexusfons_document_governance");
 	assert.equal(hydrated.policyVersion, 1);
 	assert.equal(hydrated.metadata.defaultEffect, "deny");
 });

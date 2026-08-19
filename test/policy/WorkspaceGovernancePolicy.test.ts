@@ -14,7 +14,7 @@ import { LifecycleState } from "../../src/documents/domain/enum/lifecycleState.e
 import { WorkspaceActions } from "../../src/orchestration/workspace/application/enum/WorkspaceActions.enum.js";
 import WorkspacePolicyEvaluator from "../../src/orchestration/workspace/application/services/WorkspacePolicyEvaluator.js";
 
-const policyKey = "NEXUSFONS-DOCUMENT-GOVERNANCE";
+const policyKey = "nexusfons_document_governance";
 let sequence = 0;
 
 function workspacePolicy() {

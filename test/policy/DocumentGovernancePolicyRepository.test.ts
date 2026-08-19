@@ -8,7 +8,7 @@ import DocumentGovernancePolicyRepositoryAdapter from "../../src/policy/infrastr
 function storedPolicyRow(overrides: Record<string, unknown> = {}) {
 	return {
 		id: "POLICY-ROW-1",
-		policy_key: "NEXUSFONS-DOCUMENT-GOVERNANCE",
+		policy_key: "nexusfons_document_governance",
 		policy_version: 4,
 		schema_version: 1,
 		status: "active",
@@ -46,13 +46,13 @@ test("repository hydrates the active policy header and its typed rules", async (
 	const effectiveAt = new Date("2026-08-18T10:00:00.000Z");
 
 	const policy = await repository.findActive(
-		"NEXUSFONS-DOCUMENT-GOVERNANCE",
+		"nexusfons_document_governance",
 		effectiveAt,
 	);
 
 	assert.match(queryText, /status = 'active'/);
 	assert.match(queryText, /effective_from <= \$2/);
-	assert.deepEqual(parameters, ["NEXUSFONS-DOCUMENT-GOVERNANCE", effectiveAt]);
+	assert.deepEqual(parameters, ["nexusfons_document_governance", effectiveAt]);
 	assert.equal(policy?.policyVersion, 4);
 	assert.equal(policy?.rules[0]?.action, DocumentGovernanceAction.EXPORT);
 });
@@ -65,7 +65,7 @@ test("repository rejects malformed stored rule conditions", async () => {
 	} as any);
 
 	await assert.rejects(
-		repository.findByVersion("NEXUSFONS-DOCUMENT-GOVERNANCE", 4),
+		repository.findByVersion("nexusfons_document_governance", 4),
 		(error: any) => error.errorCode === "invalid_governance_policy",
 	);
 });
@@ -75,7 +75,7 @@ test("application service caches active and immutable version lookups", async ()
 		query: async () => ({ rows: [storedPolicyRow()] }),
 	} as any);
 	const stored = await hydrationRepository.findByVersion(
-		"NEXUSFONS-DOCUMENT-GOVERNANCE",
+		"nexusfons_document_governance",
 		4,
 	);
 	assert.ok(stored);
@@ -106,7 +106,7 @@ test("application service caches active and immutable version lookups", async ()
 	);
 
 	assert.deepEqual(reference, {
-		policyId: "NEXUSFONS-DOCUMENT-GOVERNANCE",
+		policyId: "nexusfons_document_governance",
 		policyVersion: 4,
 	});
 	assert.equal(decision.allowed, true);
@@ -128,7 +128,7 @@ test("application service does not fall back when a bound version is missing", a
 				isAuthor: true,
 				isAuthenticatedInternalStaff: true,
 			},
-			{ policyId: "NEXUSFONS-DOCUMENT-GOVERNANCE", policyVersion: 99 },
+			{ policyId: "nexusfons_document_governance", policyVersion: 99 },
 		),
 		(error: any) => error.errorCode === "policy_not_found",
 	);

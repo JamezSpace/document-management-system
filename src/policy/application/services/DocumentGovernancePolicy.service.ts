@@ -15,7 +15,7 @@ import { DocumentActorRelationship } from "../../domain/enum/documentActorRelati
 import { DocumentGovernanceAction } from "../../domain/enum/documentGovernanceAction.enum.js";
 import { GovernanceSensitivityLevel } from "../../domain/enum/governanceSensitivityLevel.enum.js";
 
-const DOCUMENT_GOVERNANCE_POLICY_KEY = "NEXUSFONS-DOCUMENT-GOVERNANCE";
+const DOCUMENT_GOVERNANCE_POLICY_KEY = "nexusfons_document_governance";
 
 class DocumentGovernancePolicyService implements DocumentGovernancePolicyPort {
 	private readonly versionCache = new Map<string, DocumentGovernancePolicy>();
