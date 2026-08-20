@@ -6,6 +6,8 @@ interface DocumentRepositoryPort {
 
     fetchDocumentsByStaff(staffId: string): Promise<Document[]>;
 
+    discover(searchTerm: string, limit: number): Promise<Document[]>;
+
     findDocumentById(id: string): Promise<Document | null>;
 
     editDocument(document: Document, tx?: TransactionContext): Promise<Document | null>;

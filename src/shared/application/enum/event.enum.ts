@@ -20,6 +20,7 @@ enum StaffEntityEvents {
     STAFF_ADDED = "staff_added",
     STAFF_ACTIVATED = "staff_activated",
     STAFF_UPDATED = "staff_updated",
+	STAFF_POSITION_CHANGED = "staff_position_changed",
     STAFF_CLASSIFICATION_CREATED = "staff_classification_created",
     STAFF_CLASSIFICATION_METADATA_MODIFIED = "staff_classification_metadata_modified",
     ONBOARDING_STAFF_EMAIL_SENT = "onboarding_staff_email_sent",

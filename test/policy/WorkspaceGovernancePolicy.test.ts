@@ -79,6 +79,14 @@ const documentGovernancePolicy = new DocumentGovernancePolicyService({
 		return storedPolicy;
 	},
 });
+const authorContext = {
+	relationships: ["author"] as const,
+	isAuthenticatedInternalStaff: true,
+	hasRequiredClearance: true,
+	hasActiveGuestReaderGrant: false,
+	hasEffectiveUnitHeadSignature: true,
+	exportGrant: null,
+};
 
 function documentFixture(
 	sensitivity: GovernanceSensitivityLevel,
@@ -98,22 +106,22 @@ function documentFixture(
 }
 
 test("workspace blocks sensitive attachments while retaining author CC for confidential drafts", async () => {
-	const workspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.CONFIDENTIAL), null, { id: "STAFF-1" }, documentGovernancePolicy);
+	const workspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.CONFIDENTIAL), null, "STAFF-1", { ...authorContext, relationships: [...authorContext.relationships] }, documentGovernancePolicy);
 	assert.equal(workspace.authorizedActions.includes(WorkspaceActions.ATTACH), false);
 	assert.equal(workspace.authorizedActions.includes(WorkspaceActions.CC), true);
 	assert.equal(workspace.governance.policyVersion, 1);
 });
 
 test("workspace does not grant restricted CC or attachment actions by default", async () => {
-	const workspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.RESTRICTED), null, { id: "STAFF-1" }, documentGovernancePolicy);
+	const workspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.RESTRICTED), null, "STAFF-1", { ...authorContext, relationships: ["author"] }, documentGovernancePolicy);
 	assert.equal(workspace.authorizedActions.includes(WorkspaceActions.ATTACH), false);
 	assert.equal(workspace.authorizedActions.includes(WorkspaceActions.CC), false);
 });
 
 test("workspace uses the document-bound policy version and caches immutable versions", async () => {
 	const before = versionLoads;
-	const internalWorkspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.INTERNAL, LifecycleState.ACTIVE), null, { id: "STAFF-1" }, documentGovernancePolicy);
-	const confidentialWorkspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.CONFIDENTIAL, LifecycleState.ACTIVE), null, { id: "STAFF-1" }, documentGovernancePolicy);
+	const internalWorkspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.INTERNAL, LifecycleState.ACTIVE), null, "STAFF-1", { ...authorContext, relationships: [...authorContext.relationships] }, documentGovernancePolicy);
+	const confidentialWorkspace = await WorkspacePolicyEvaluator.eval(documentFixture(GovernanceSensitivityLevel.CONFIDENTIAL, LifecycleState.ACTIVE), null, "STAFF-1", { ...authorContext, relationships: [...authorContext.relationships] }, documentGovernancePolicy);
 	assert.equal(internalWorkspace.authorizedActions.includes(WorkspaceActions.EXPORT), true);
 	assert.equal(confidentialWorkspace.authorizedActions.includes(WorkspaceActions.EXPORT), false);
 	assert.ok(versionLoads - before <= 1);
@@ -123,7 +131,7 @@ test("workspace fails closed for legacy documents without a policy binding", asy
 	const document = documentFixture(GovernanceSensitivityLevel.PUBLIC);
 	delete document.classification.governancePolicyKey;
 	await assert.rejects(
-		WorkspacePolicyEvaluator.eval(document, null, { id: "STAFF-1" }, documentGovernancePolicy),
+		WorkspacePolicyEvaluator.eval(document, null, "STAFF-1", { ...authorContext, relationships: [...authorContext.relationships] }, documentGovernancePolicy),
 		(error: any) => error.errorCode === "policy_not_found",
 	);
 });

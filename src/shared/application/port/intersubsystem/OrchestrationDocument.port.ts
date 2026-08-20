@@ -1,7 +1,44 @@
-import type Document from "../../../../documents/domain/entities/document/Document.js";
-import { CorrespondenceDirection } from "../../../../documents/domain/enum/correspondenceDirection.enum.js";
-import { LifecycleState } from "../../../../documents/domain/enum/lifecycleState.enum.js";
+import type { GovernanceDocumentSensitivity } from "./DocumentGovernancePolicy.port.js";
 import type { TransactionContext } from "../../../infrastructure/persistence/primary/postgres.js";
+
+const DocumentLifecycleState = {
+	DRAFT: "draft",
+	IN_REVIEW: "in_review",
+	ACTIVE: "active",
+	DECLARED_RECORD: "declared_record",
+} as const;
+
+const DocumentCorrespondenceDirection = {
+	INTERNAL: "internal",
+	EXTERNAL: "external",
+} as const;
+
+interface OrchestrationDocumentVersion {
+	id: string;
+	contentDelta: unknown;
+	getState(): string;
+}
+
+interface Document {
+	id: string;
+	ownerId: string;
+	title: string;
+	referenceNumber: string | null;
+	addressees: Array<{
+		recipientUnitId: string;
+		addressedToDesignationId: string;
+		isPrimary: boolean;
+	}>;
+	classification: {
+		sensitivity: GovernanceDocumentSensitivity;
+		governancePolicyKey?: string | null;
+		governancePolicyVersion?: number | null;
+	};
+	correspondence: { direction: string };
+	retention: unknown;
+	createdAt: Date;
+	getCurrentVersion(): OrchestrationDocumentVersion | null;
+}
 
 interface OrchestrationDocumentPort {
     getDocument(
@@ -10,8 +47,5 @@ interface OrchestrationDocumentPort {
 	): Promise<Document | null>;
 }
 
-export type {OrchestrationDocumentPort, Document};
-export {
-    LifecycleState as DocumentLifecycleState,
-    CorrespondenceDirection as DocumentCorrespondenceDirection
-};
+export type { OrchestrationDocumentPort, Document };
+export { DocumentLifecycleState, DocumentCorrespondenceDirection };

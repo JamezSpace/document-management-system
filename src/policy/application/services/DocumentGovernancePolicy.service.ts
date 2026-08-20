@@ -1,9 +1,10 @@
 import type {
 	DocumentGovernancePolicyPort,
+	DocumentGovernanceAction as SharedDocumentGovernanceAction,
+	DocumentGovernanceFacts,
 	GovernanceDocumentSensitivity,
 	GovernancePolicyReference,
-	WorkspaceGovernanceAction,
-	WorkspaceGovernanceFacts,
+	GovernanceActorRelationship,
 } from "../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import ApplicationError from "../../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../../shared/errors/enum/application.enum.js";
@@ -35,27 +36,31 @@ class DocumentGovernancePolicyService implements DocumentGovernancePolicyPort {
 		return this.reference(policy);
 	}
 
-	async evaluateWorkspaceAction(
-		action: WorkspaceGovernanceAction,
-		facts: WorkspaceGovernanceFacts,
+	async evaluateAction(
+		action: SharedDocumentGovernanceAction,
+		facts: DocumentGovernanceFacts,
 		policyReference: GovernancePolicyReference,
 	) {
 		const policy = await this.loadPolicyVersion(policyReference);
-		const relationships: DocumentActorRelationship[] = [];
-		if (facts.isAuthor) relationships.push(DocumentActorRelationship.AUTHOR);
-		if (facts.isPrimaryAuthorizingDesk) {
-			relationships.push(DocumentActorRelationship.PRIMARY_AUTHORIZING_DESK);
-		}
+		const relationships = (facts.relationships ?? []).map((relationship) =>
+			this.toRelationship(relationship),
+		);
 
 		const context: DocumentGovernanceContext = {
 			action: this.toGovernanceAction(action),
 			sensitivity: this.toSensitivity(facts.sensitivity),
 			relationships,
-			isAuthenticatedInternalStaff: facts.isAuthenticatedInternalStaff,
 		};
-		if (facts.hasActiveExportGrant) {
-			context.exportGrant = { active: true, grantedBy: "originator" };
-		}
+		if (facts.isAuthenticatedInternalStaff !== undefined) context.isAuthenticatedInternalStaff = facts.isAuthenticatedInternalStaff;
+		if (facts.forwardDestination !== undefined) context.forwardDestination = facts.forwardDestination;
+		if (facts.hasRecordedJustification !== undefined) context.hasRecordedJustification = facts.hasRecordedJustification;
+		if (facts.hasDowngradeApproval !== undefined) context.hasDowngradeApproval = facts.hasDowngradeApproval;
+		if (facts.isSensitivityDowngrade !== undefined) context.isSensitivityDowngrade = facts.isSensitivityDowngrade;
+		if (facts.hasRequiredClearance !== undefined) context.hasRequiredClearance = facts.hasRequiredClearance;
+		if (facts.hasActiveGuestReaderGrant !== undefined) context.hasActiveGuestReaderGrant = facts.hasActiveGuestReaderGrant;
+		if (facts.hasEffectiveUnitHeadSignature !== undefined) context.hasEffectiveUnitHeadSignature = facts.hasEffectiveUnitHeadSignature;
+		if (facts.exportGrant !== undefined) context.exportGrant = facts.exportGrant;
+		if (facts.isInternalCanvas !== undefined) context.isInternalCanvas = facts.isInternalCanvas;
 
 		return DocumentGovernancePolicyEvaluator.evaluate(policy, context);
 	}
@@ -106,16 +111,16 @@ class DocumentGovernancePolicyService implements DocumentGovernancePolicyPort {
 		return `${policyKey}:${policyVersion}`;
 	}
 
-	private toGovernanceAction(action: WorkspaceGovernanceAction) {
-		return {
-			attach: DocumentGovernanceAction.ATTACH,
-			export: DocumentGovernanceAction.EXPORT,
-			manage_cc: DocumentGovernanceAction.MANAGE_CC,
-		}[action];
+	private toGovernanceAction(action: SharedDocumentGovernanceAction) {
+		return action as DocumentGovernanceAction;
 	}
 
 	private toSensitivity(sensitivity: GovernanceDocumentSensitivity) {
 		return sensitivity as GovernanceSensitivityLevel;
+	}
+
+	private toRelationship(relationship: GovernanceActorRelationship) {
+		return relationship as DocumentActorRelationship;
 	}
 }
 

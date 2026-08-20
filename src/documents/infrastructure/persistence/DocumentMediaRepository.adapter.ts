@@ -8,13 +8,14 @@ import type {
     DocumentMediaRepositoryPort,
     SaveDocumentMediaPayload,
 } from "../../application/ports/repos/DocumentMediaRepository.port.js";
+import type { TransactionContext } from "../../../shared/infrastructure/persistence/primary/postgres.js";
 
 class DocumentMediaRepositoryAdapter
 	implements DocumentMediaRepositoryPort
 {
 	constructor(private readonly dbPool: PostgresDb) {}
 
-	async save(payload: SaveDocumentMediaPayload): Promise<void> {
+	async save(payload: SaveDocumentMediaPayload, tx?: TransactionContext): Promise<void> {
 		try {
 			const query = `
 				INSERT INTO document.document_media_assets (
@@ -32,7 +33,8 @@ class DocumentMediaRepositoryAdapter
 					assigned_at = EXCLUDED.assigned_at
 			`;
 
-			await this.dbPool.query(query, [
+			const executor = tx?.client ?? this.dbPool;
+			await executor.query(query, [
 				payload.documentId,
 				payload.documentVersionId ?? null,
 				payload.mediaId,
@@ -49,6 +51,58 @@ class DocumentMediaRepositoryAdapter
 				column: postgresError.details?.column,
 			});
 		}
+	}
+
+	async mediaExistsForUploader(
+		mediaId: string,
+		uploadedBy: string,
+		tx?: TransactionContext,
+	): Promise<boolean> {
+		const executor = tx?.client ?? this.dbPool;
+		const result = await executor.query(
+			`SELECT 1 FROM media.media_assets
+			 WHERE id = $1 AND uploaded_by = $2 AND is_active = TRUE
+			 LIMIT 1;`,
+			[mediaId, uploadedBy],
+		);
+		return result.rows.length > 0;
+	}
+
+	async listByDocument(documentId: string) {
+		const result = await this.dbPool.query(
+			`SELECT dma.document_id, dma.document_version_id, dma.media_id,
+			        dma.asset_role, dma.assigned_at, ma.mime_type,
+			        ma.size_bytes, ma.checksum
+			 FROM document.document_media_assets dma
+			 JOIN media.media_assets ma ON ma.id = dma.media_id AND ma.is_active = TRUE
+			 WHERE dma.document_id = $1
+			 ORDER BY dma.assigned_at ASC;`,
+			[documentId],
+		);
+		return result.rows.map((row) => ({
+			documentId: row.document_id,
+			documentVersionId: row.document_version_id,
+			mediaId: row.media_id,
+			assetRole: row.asset_role,
+			assignedAt: row.assigned_at,
+			mimeType: row.mime_type,
+			sizeBytes: Number(row.size_bytes),
+			checksum: row.checksum,
+		}));
+	}
+
+	async remove(
+		documentId: string,
+		mediaId: string,
+		tx?: TransactionContext,
+	): Promise<boolean> {
+		const executor = tx?.client ?? this.dbPool;
+		const result = await executor.query(
+			`DELETE FROM document.document_media_assets
+			 WHERE document_id = $1 AND media_id = $2;`,
+			[documentId, mediaId],
+		);
+		return (result.rowCount ?? 0) > 0;
 	}
 }
 

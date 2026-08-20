@@ -6,6 +6,12 @@ import {
 } from "../types/document.type.js";
 import { routePolicies } from "../../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../../../documents/domain/enum/documentCapabilities.enum.js";
+import { Type, type Static } from "@sinclair/typebox";
+
+const workspaceQuerySchema = Type.Object({
+	canvas: Type.Optional(Type.Union([Type.Literal("internal"), Type.Literal("letterhead")])),
+});
+type WorkspaceQuery = Static<typeof workspaceQuerySchema>;
 
 async function workspaceRoutes(
 	fastify: FastifyInstance,
@@ -21,10 +27,10 @@ async function workspaceRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.VIEW),
 			},
-			schema: { params: documentIdSchema },
+			schema: { params: documentIdSchema, querystring: workspaceQuerySchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
+			request: FastifyRequest<{ Params: DocumentIdSchemaType; Querystring: WorkspaceQuery }>,
 			reply: FastifyReply
 		) => {
 			const { documentId } = request.params;
@@ -33,6 +39,7 @@ async function workspaceRoutes(
 				await workspaceController.resolveWorkspacePermissions(
 					documentId,
 					request.actor!.staffId,
+					request.query.canvas ?? "internal",
 				);
 
 			return reply.code(200).send({

@@ -18,6 +18,7 @@ const conditionKeys = new Set<keyof DocumentGovernanceRuleConditions>([
 	"requiredClearance",
 	"internalCanvas",
 	"guestReaderRequiresActiveGrant",
+	"effectiveUnitHeadSignature",
 	"downgradeRequiresApproval",
 	"downgradeRequiresReason",
 ]);
@@ -100,6 +101,12 @@ class DocumentGovernanceRule {
 			if (grant.remainingUses !== undefined && grant.remainingUses !== null && grant.remainingUses <= 0) return false;
 		}
 
+		if (
+			conditions.effectiveUnitHeadSignature !== undefined &&
+			Boolean(context.hasEffectiveUnitHeadSignature) !==
+				conditions.effectiveUnitHeadSignature
+		) return false;
+
 		if (context.isSensitivityDowngrade) {
 			if (conditions.downgradeRequiresApproval && !context.hasDowngradeApproval)
 				return false;
@@ -149,6 +156,7 @@ class DocumentGovernanceRule {
 			"requiredClearance",
 			"internalCanvas",
 			"guestReaderRequiresActiveGrant",
+			"effectiveUnitHeadSignature",
 			"downgradeRequiresApproval",
 			"downgradeRequiresReason",
 		] as const) {

@@ -12,6 +12,8 @@ import WorkflowAccessRepositoryAdapter from "./i & a/access/infrastructure/persi
 import IdentityAccessSubsystem from "./i & a/index.js";
 import DispatchStaffAdapter from "./i & a/identity/infrastructure/persistence/entities/staff/DispatchStaffRepo.adapter.js";
 import DocumentIdentityAdapter from "./i & a/identity/infrastructure/persistence/DocumentIdentity.adapter.js";
+import DocumentGovernanceContextAdapter from "./documents/infrastructure/persistence/DocumentGovernanceContext.adapter.js";
+import DocumentRepositoryAdapter from "./documents/infrastructure/persistence/DocumentRepository.adapter.js";
 import FirebaseAuthAdapter from "./i & a/identity/infrastructure/services/auth/FirebaseAuth.adapter.js";
 import NotificationSubsystem from "./notifications/index.js";
 import OrchestrationSubsystem from "./orchestration/workspace/index.js";
@@ -26,6 +28,7 @@ import NexusError from "./shared/errors/NexusError.js";
 import InMemoryEventBusAdapter from "./shared/infrastructure/InMemoryEventBus.js";
 import { dbConfig } from "./shared/infrastructure/persistence/primary/postgres.config.js";
 import WorkflowSubsystem from "./workflow/index.js";
+import DocumentGovernanceAuditAdapter from "./audit/infrastructure/persistence/DocumentGovernanceAudit.adapter.js";
 
 interface BuildAppOptions {
 	logger?: boolean;
@@ -84,11 +87,21 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 		const dispatchDocumentAdapter = new DispatchDocumentAdapter(server.pg);
 		const documentGovernancePolicy =
 			createDocumentGovernancePolicyPort(server.pg);
+		const documentGovernanceContext =
+			new DocumentGovernanceContextAdapter(server.pg);
+		const documentGovernanceAudit = new DocumentGovernanceAuditAdapter(server.pg);
+		const orchestrationDocumentRepository = new DocumentRepositoryAdapter(server.pg);
+		const orchestrationDocument = {
+			getDocument: (documentId: string) =>
+				orchestrationDocumentRepository.findDocumentById(documentId),
+		};
 
 		server.register(DocumentSubsystem, {
 			prefix: "/api/document",
 			documentIdentityAdapter,
 			documentGovernancePolicy,
+			documentGovernanceContext,
+			documentGovernanceAudit,
 			retentionService,
 			globalEventBus: eventBusAdapter,
 		});
@@ -96,6 +109,9 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 		server.register(OrchestrationSubsystem, {
 			prefix: "/api",
 			documentGovernancePolicy,
+			documentGovernanceContext,
+			documentGovernanceAudit,
+			orchestrationDocument,
 			workflowPolicy: policyWorkflowAdapter,
 		});
 		server.register(PolicySubsystem, { prefix: "/api/policy" });
@@ -110,6 +126,7 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 			globalEventBus: eventBusAdapter,
 			dispatchStaffAdapter,
 			dispatchDocumentAdapter,
+			documentGovernanceAudit,
 		});
 		server.register(NotificationSubsystem, {
 			prefix: "/api/notifications",

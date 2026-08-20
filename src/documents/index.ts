@@ -44,10 +44,25 @@ import ReferenceSequenceRepositoryAdapter from "./infrastructure/persistence/Ref
 import ReferenceNumberService from "./infrastructure/services/ReferenceNumberService.adapter.js";
 import type { DocumentIdentityPort } from "../shared/application/port/intersubsystem/DocumentIdentity.port.js";
 import type { DocumentGovernancePolicyPort } from "../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import type { DocumentGovernanceContextPort } from "../shared/application/port/intersubsystem/DocumentGovernanceContext.port.js";
+import DocumentGovernanceGuard from "./application/services/DocumentGovernanceGuard.service.js";
+import ManageDocumentAttachmentUseCase from "./application/usecases/document/ManageDocumentAttachment.usecase.js";
+import DocumentMediaRepositoryAdapter from "./infrastructure/persistence/DocumentMediaRepository.adapter.js";
+import DocumentSignatureRepositoryAdapter from "./infrastructure/persistence/DocumentSignatureRepository.adapter.js";
+import SignDocumentAsUnitHeadUseCase from "./application/usecases/document/SignDocumentAsUnitHead.usecase.js";
+import type { DocumentGovernanceAuditPort } from "../shared/application/port/intersubsystem/DocumentGovernanceAudit.port.js";
+import DocumentGovernanceObligationExecutor from "./application/services/DocumentGovernanceObligationExecutor.service.js";
+import DocumentGovernanceGrantRepositoryAdapter from "./infrastructure/persistence/DocumentGovernanceGrantRepository.adapter.js";
+import DocumentSensitivityChangeRepositoryAdapter from "./infrastructure/persistence/DocumentSensitivityChangeRepository.adapter.js";
+import ManageDocumentGovernanceGrantUseCase from "./application/usecases/document/ManageDocumentGovernanceGrant.usecase.js";
+import ManageDocumentSensitivityUseCase from "./application/usecases/document/ManageDocumentSensitivity.usecase.js";
+import DiscoverDocumentsUseCase from "./application/usecases/document/DiscoverDocuments.usecase.js";
 
 interface DocumentSubsystemDependencies {
     documentIdentityAdapter: DocumentIdentityPort;
 	documentGovernancePolicy: DocumentGovernancePolicyPort;
+	documentGovernanceContext: DocumentGovernanceContextPort;
+	documentGovernanceAudit: DocumentGovernanceAuditPort;
 	retentionService: RetentionServicePort;
     globalEventBus: EventBusPort
 }
@@ -75,6 +90,10 @@ export default async function DocumentSubsystem(
 	const corrSubjectRepository = new CorrespondenceSubjectRepoAdapter(postgres);
 	const bussFunctionRepository = new BusinessFunctionRepoAdapter(postgres);
 	const docTypeRepository = new DocTypeRepoAdapter(postgres);
+	const documentMediaRepository = new DocumentMediaRepositoryAdapter(postgres);
+	const documentSignatureRepository = new DocumentSignatureRepositoryAdapter(postgres);
+	const documentGovernanceGrantRepository = new DocumentGovernanceGrantRepositoryAdapter(postgres);
+	const documentSensitivityChangeRepository = new DocumentSensitivityChangeRepositoryAdapter(postgres);
 
 	const refSequenceRepository =
 		new ReferenceSequenceRepositoryAdapter(postgres);
@@ -87,6 +106,14 @@ export default async function DocumentSubsystem(
 
 	// service
 	const refNumberService = new ReferenceNumberService(refSequenceRepository);
+	const governanceObligations = new DocumentGovernanceObligationExecutor(
+		dependencies.documentGovernanceAudit,
+	);
+	const governanceGuard = new DocumentGovernanceGuard(
+		dependencies.documentGovernancePolicy,
+		dependencies.documentGovernanceContext,
+		governanceObligations,
+	);
 
 	// application layer - documents
 	const createNewDocumentUseCase = new DocumentCreationUseCase(
@@ -101,15 +128,53 @@ export default async function DocumentSubsystem(
 		documentIdentityAdapter,
 		retentionService,
 		dependencies.documentGovernancePolicy,
+		dependencies.documentGovernanceContext,
 		transactionManager,
 	);
 
 	const getAllDocsByStaffUseCase = new GetAllDocumentsByStaffUseCase(
 		documentRepository,
+		governanceGuard,
 	);
 
 	const getDocumentByIdUseCase = new GetDocumentByIdUsecase(
 		documentRepository,
+		governanceGuard,
+	);
+	const manageDocumentAttachmentUseCase = new ManageDocumentAttachmentUseCase(
+		documentRepository,
+		documentMediaRepository,
+		governanceGuard,
+		transactionManager,
+	);
+	const signDocumentAsUnitHeadUseCase = new SignDocumentAsUnitHeadUseCase(
+		idGenerator,
+		documentRepository,
+		documentSignatureRepository,
+		dependencies.documentGovernanceContext,
+		transactionManager,
+		dependencies.documentGovernanceAudit,
+	);
+	const manageDocumentGovernanceGrantUseCase = new ManageDocumentGovernanceGrantUseCase(
+		idGenerator,
+		documentRepository,
+		documentGovernanceGrantRepository,
+		dependencies.documentGovernanceContext,
+		dependencies.documentGovernanceAudit,
+		transactionManager,
+	);
+	const manageDocumentSensitivityUseCase = new ManageDocumentSensitivityUseCase(
+		idGenerator,
+		documentRepository,
+		documentSensitivityChangeRepository,
+		dependencies.documentGovernancePolicy,
+		dependencies.documentGovernanceContext,
+		dependencies.documentGovernanceAudit,
+		transactionManager,
+	);
+	const discoverDocumentsUseCase = new DiscoverDocumentsUseCase(
+		documentRepository,
+		governanceGuard,
 	);
 
 	const submitDocumentUseCase = new DocumentSubmissionUseCase(
@@ -126,6 +191,7 @@ export default async function DocumentSubsystem(
 		documentRepository,
         lifecycleHistoryRepository,
 		documentEventsAdapter,
+		governanceGuard,
 	);
 
 	const createMinuteUseCase = new CreateMinuteUseCase(
@@ -181,6 +247,11 @@ export default async function DocumentSubsystem(
         getDocumentByIdUseCase,
 		submitDocumentUseCase,
 		deleteDocumentUseCase,
+		manageDocumentAttachmentUseCase,
+		signDocumentAsUnitHeadUseCase,
+		manageDocumentGovernanceGrantUseCase,
+		manageDocumentSensitivityUseCase,
+		discoverDocumentsUseCase,
 	);
 
 	const corrSubjectController = new CorrespondenceSubjectController(

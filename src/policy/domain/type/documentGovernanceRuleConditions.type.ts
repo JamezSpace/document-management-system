@@ -10,6 +10,7 @@ interface DocumentGovernanceRuleConditions {
 	requiredClearance?: boolean;
 	internalCanvas?: boolean;
 	guestReaderRequiresActiveGrant?: boolean;
+	effectiveUnitHeadSignature?: boolean;
 	downgradeRequiresApproval?: boolean;
 	downgradeRequiresReason?: boolean;
 }

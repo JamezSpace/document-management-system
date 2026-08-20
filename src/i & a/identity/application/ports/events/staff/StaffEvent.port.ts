@@ -7,6 +7,8 @@ interface StaffEventsPort {
 
 	staffUpdated(payload: { staffId: string }): Promise<void>;
 
+	staffPositionChanged(payload: { staffId: string }): Promise<void>;
+
 	staffMediaAssigned(payload: {
 		staffId: string;
 		mediaId: string;

@@ -95,11 +95,11 @@ test("application service caches active and immutable version lookups", async ()
 
 	const reference = await service.getActivePolicyReference();
 	await service.getActivePolicyReference();
-	const decision = await service.evaluateWorkspaceAction(
+	const decision = await service.evaluateAction(
 		"export",
 		{
 			sensitivity: "internal",
-			isAuthor: false,
+			relationships: [],
 			isAuthenticatedInternalStaff: true,
 		},
 		reference,
@@ -121,11 +121,11 @@ test("application service does not fall back when a bound version is missing", a
 	});
 
 	await assert.rejects(
-		service.evaluateWorkspaceAction(
+		service.evaluateAction(
 			"attach",
 			{
 				sensitivity: "public",
-				isAuthor: true,
+				relationships: ["author"],
 				isAuthenticatedInternalStaff: true,
 			},
 			{ policyId: "nexusfons_document_governance", policyVersion: 99 },

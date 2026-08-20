@@ -13,7 +13,12 @@ class EditExistingStaffUseCase {
 			staffId,
 			changesToMake: staffUpdate,
 		})
-
+		if (editedStaff) {
+			await this.staffEvents.staffUpdated({ staffId });
+			if (staffUpdate.unitId !== undefined || staffUpdate.designationId !== undefined) {
+				await this.staffEvents.staffPositionChanged({ staffId });
+			}
+		}
         return editedStaff;
     }
 }

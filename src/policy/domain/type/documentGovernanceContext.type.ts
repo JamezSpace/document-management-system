@@ -15,6 +15,7 @@ interface DocumentGovernanceContext {
 	isSensitivityDowngrade?: boolean;
 	hasRequiredClearance?: boolean;
 	hasActiveGuestReaderGrant?: boolean;
+	hasEffectiveUnitHeadSignature?: boolean;
 	exportGrant?: DynamicExportGrant | null;
 	isInternalCanvas?: boolean;
 }

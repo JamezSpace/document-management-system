@@ -22,6 +22,12 @@ class DocumentSubmissionUseCase {
 	) {}
 
 	async submitDocument(actorId: string, document: Document) {
+		if (document.ownerId !== actorId) {
+			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+				message: "Only the document author may submit the document",
+				details: { documentId: document.id },
+			});
+		}
 		const versionedDocument = document.getCurrentVersion();
 
 		// this affirms that documents that have been versioned can be submitted

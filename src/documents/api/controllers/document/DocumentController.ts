@@ -5,11 +5,15 @@ import type DeleteDocumentUseCase from "../../../application/usecases/document/D
 import type GetAllDocumentsByStaffUseCase from "../../../application/usecases/document/GetAllDocsByStaff.usecase.js";
 import type GetDocumentByIdUsecase from "../../../application/usecases/document/GetDocumentById.usecase.js";
 import type DocumentSubmission from "../../../application/usecases/document/SubmitDocument.usecase.js";
-import Document from "../../../domain/entities/document/Document.js";
-import DocumentVersion from "../../../domain/entities/document/DocumentVersion.js";
+import type ManageDocumentAttachmentUseCase from "../../../application/usecases/document/ManageDocumentAttachment.usecase.js";
+import type SignDocumentAsUnitHeadUseCase from "../../../application/usecases/document/SignDocumentAsUnitHead.usecase.js";
+import type ManageDocumentGovernanceGrantUseCase from "../../../application/usecases/document/ManageDocumentGovernanceGrant.usecase.js";
+import type ManageDocumentSensitivityUseCase from "../../../application/usecases/document/ManageDocumentSensitivity.usecase.js";
+import type DiscoverDocumentsUseCase from "../../../application/usecases/document/DiscoverDocuments.usecase.js";
+import type { GovernanceDocumentSensitivity } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import type { DocumentGovernanceGrantType } from "../../../application/ports/repos/DocumentGovernanceGrantRepository.port.js";
 import { CorrespondenceDirection } from "../../../domain/enum/correspondenceDirection.enum.js";
 import type {
-    DocumentSchemaType,
     DocumentSchemaTypeForCreation,
 } from "../../types/document.type.js";
 
@@ -20,6 +24,11 @@ class DocumentController {
 		private readonly getDocumentByIdUsecase: GetDocumentByIdUsecase,
 		private readonly submitDocUsecase: DocumentSubmission,
 		private readonly deleteDocumentUseCase: DeleteDocumentUseCase,
+		private readonly manageDocumentAttachmentUseCase: ManageDocumentAttachmentUseCase,
+		private readonly signDocumentAsUnitHeadUseCase: SignDocumentAsUnitHeadUseCase,
+		private readonly manageDocumentGovernanceGrantUseCase: ManageDocumentGovernanceGrantUseCase,
+		private readonly manageDocumentSensitivityUseCase: ManageDocumentSensitivityUseCase,
+		private readonly discoverDocumentsUseCase: DiscoverDocumentsUseCase,
 	) {}
 
 	structureIncomingPayload(
@@ -141,58 +150,10 @@ class DocumentController {
 		return docsByStaff;
 	}
 
-	async fetchDocById(docId: string) {
-		const doc = await this.getDocumentByIdUsecase.execute(docId);
+	async fetchDocById(docId: string, actorStaffId: string) {
+		const doc = await this.getDocumentByIdUsecase.execute(docId, actorStaffId);
 
 		return doc;
-	}
-
-	async saveDocument(
-		doc: DocumentSchemaType,
-		contentDelta: unknown,
-		actorId: string,
-	) {
-		let version = null;
-		if (doc.currentVersion)
-			version = new DocumentVersion({
-				...doc.currentVersion,
-				createdAt: new Date(doc.createdAt),
-				lifecycle: {
-					...doc.currentVersion.lifecycle,
-					stateEnteredAt: new Date(
-						doc.currentVersion.lifecycle.stateEnteredAt,
-					),
-				},
-			});
-
-		const document = new Document({
-			...doc,
-			version,
-			classification: {
-				...doc.classification,
-				classifiedAt: new Date(doc.classification.classifiedAt),
-				lastReclassifiedAt: doc.classification.lastReclassifiedAt
-					? new Date(doc.classification.lastReclassifiedAt)
-					: null,
-			},
-			retention: {
-				...doc.retention,
-				retentionStartDate: new Date(doc.retention.retentionStartDate),
-				disposalEligibilityDate: new Date(
-					doc.retention.disposalEligibilityDate,
-				),
-			},
-			createdAt: new Date(doc.createdAt),
-			updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : null,
-		});
-
-		const savedDoc = await this.createDocumentUseCase.saveDocument(
-			document,
-			contentDelta,
-			actorId,
-		);
-
-		return savedDoc;
 	}
 
 	async saveDocumentContent(
@@ -200,7 +161,7 @@ class DocumentController {
 		contentDelta: unknown,
 		actorId: string,
 	) {
-		const document = await this.getDocumentByIdUsecase.execute(documentId);
+		const document = await this.getDocumentByIdUsecase.execute(documentId, actorId);
 
 		if (!document) return null;
 
@@ -211,62 +172,8 @@ class DocumentController {
 		);
 	}
 
-	async submitDocument(actorId: string, doc: DocumentSchemaType) {
-		const version = doc.currentVersion
-			? new DocumentVersion({
-					id: doc.currentVersion.id,
-					documentId: doc.id,
-					contentDelta: doc.currentVersion.contentDelta,
-					versionNumber: doc.currentVersion.versionNumber,
-					mediaId: doc.currentVersion.mediaId ?? null,
-					createdAt: new Date(doc.currentVersion.createdAt),
-					createdBy: doc.currentVersion.createdBy,
-					lifecycle: {
-						currentState: doc.currentVersion.lifecycle.currentState,
-						stateEnteredAt: new Date(
-							doc.currentVersion.lifecycle.stateEnteredAt,
-						),
-						stateEnteredBy:
-							doc.currentVersion.lifecycle.stateEnteredBy,
-					},
-				})
-			: null;
-
-		const document = {
-			...doc,
-			// addressee: {
-			// 	recipientUnitId: doc.addressee.recipientUnitId,
-			// 	addressedToDesignationId:
-			// 		doc.addressee.addressedToDesignationId,
-			// },
-			classification: {
-				...doc.classification,
-				classifiedAt: new Date(doc.classification.classifiedAt),
-				lastReclassifiedAt: doc.classification.lastReclassifiedAt
-					? new Date(doc.classification.lastReclassifiedAt)
-					: null,
-			},
-			retention: {
-				...doc.retention,
-				retentionStartDate: new Date(doc.retention.retentionStartDate),
-				disposalEligibilityDate: new Date(
-					doc.retention.disposalEligibilityDate,
-				),
-			},
-			createdAt: new Date(doc.createdAt),
-			updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : null,
-		};
-
-		const submittedDocument = await this.submitDocUsecase.submitDocument(
-			actorId,
-			new Document({ ...document, version }),
-		);
-
-		return submittedDocument;
-	}
-
 	async submitDocumentById(documentId: string, actorId: string) {
-		const document = await this.getDocumentByIdUsecase.execute(documentId);
+		const document = await this.getDocumentByIdUsecase.execute(documentId, actorId);
 
 		if (!document) return null;
 
@@ -283,6 +190,73 @@ class DocumentController {
 			documentId,
 			deleted: true,
 		};
+	}
+
+	attachMedia(
+		documentId: string,
+		mediaId: string,
+		actorStaffId: string,
+	) {
+		return this.manageDocumentAttachmentUseCase.attach({
+			documentId,
+			mediaId,
+			actorStaffId,
+		});
+	}
+
+	listAttachments(documentId: string, actorStaffId: string) {
+		return this.manageDocumentAttachmentUseCase.list(documentId, actorStaffId);
+	}
+
+	removeAttachment(
+		documentId: string,
+		mediaId: string,
+		actorStaffId: string,
+	) {
+		return this.manageDocumentAttachmentUseCase.remove(
+			documentId,
+			mediaId,
+			actorStaffId,
+		);
+	}
+
+	signAsEffectiveUnitHead(documentId: string, actorStaffId: string) {
+		return this.signDocumentAsUnitHeadUseCase.execute(documentId, actorStaffId);
+	}
+
+	discover(searchTerm: string, actorStaffId: string, limit?: number) {
+		return this.discoverDocumentsUseCase.execute(searchTerm, actorStaffId, limit);
+	}
+
+	createGovernanceGrant(documentId: string, payload: {
+		granteeStaffId: string;
+		grantType: DocumentGovernanceGrantType;
+		reason: string;
+		validTo?: string | null;
+		remainingUses?: number | null;
+	}, actorStaffId: string) {
+		return this.manageDocumentGovernanceGrantUseCase.grant({
+			...payload,
+			documentId,
+			actorStaffId,
+			validTo: payload.validTo ? new Date(payload.validTo) : null,
+		});
+	}
+
+	revokeGovernanceGrant(documentId: string, grantId: string, reason: string, actorStaffId: string) {
+		return this.manageDocumentGovernanceGrantUseCase.revoke(documentId, grantId, actorStaffId, reason);
+	}
+
+	requestSensitivityChange(documentId: string, targetSensitivity: GovernanceDocumentSensitivity, reason: string, actorStaffId: string) {
+		return this.manageDocumentSensitivityUseCase.requestChange(documentId, actorStaffId, targetSensitivity, reason);
+	}
+
+	approveSensitivityChange(documentId: string, requestId: string, reason: string, actorStaffId: string) {
+		return this.manageDocumentSensitivityUseCase.approve(documentId, requestId, actorStaffId, reason);
+	}
+
+	rejectSensitivityChange(documentId: string, requestId: string, reason: string, actorStaffId: string) {
+		return this.manageDocumentSensitivityUseCase.reject(documentId, requestId, actorStaffId, reason);
 	}
 }
 

@@ -1,5 +1,6 @@
 import type { DocumentIdentityPort } from "../../../../shared/application/port/intersubsystem/DocumentIdentity.port.js";
 import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import type { DocumentGovernanceContextPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernanceContext.port.js";
 import type { IdGeneratorPort } from "../../../../shared/application/port/services/IdGenerator.port.js";
 import type { TransactionManager } from "../../../../shared/application/port/TransactionManager.port.js";
 import ApplicationError from "../../../../shared/errors/ApplicationError.error.js";
@@ -30,6 +31,7 @@ class DocumentCreationUseCase {
 		private readonly documentIdentity: DocumentIdentityPort,
 		private readonly retentionService: RetentionServicePort,
 		private readonly documentGovernancePolicy: DocumentGovernancePolicyPort,
+		private readonly documentGovernanceContext: DocumentGovernanceContextPort,
 		private readonly transactionManager: TransactionManager,
 	) {}
 
@@ -44,6 +46,26 @@ class DocumentCreationUseCase {
 			async (transactionInstance) => {
 				const governancePolicy =
 					await this.documentGovernancePolicy.getActivePolicyReference();
+				const assignmentDecision =
+					await this.documentGovernancePolicy.evaluateAction(
+						"assign_sensitivity",
+						{
+							sensitivity: payload.classification.sensitivity,
+							relationships: ["author"],
+							isAuthenticatedInternalStaff: true,
+							hasRequiredClearance:
+								await this.documentGovernanceContext.hasRestrictedClearance(
+									payload.ownerId,
+								),
+						},
+						governancePolicy,
+					);
+				if (!assignmentDecision.allowed) {
+					throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+						message: "Document sensitivity assignment was denied",
+						details: { reasonCode: assignmentDecision.reasonCode },
+					});
+				}
 				const retention = await this.retentionService.computeRetention(
 					docTypeId,
 					new Date(),
@@ -169,6 +191,12 @@ class DocumentCreationUseCase {
 		contentDelta: unknown,
 		actorId: string,
 	) {
+		if (document.ownerId !== actorId) {
+			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+				message: "Only the document author may edit document content",
+				details: { documentId: document.id },
+			});
+		}
 		const uuid = this.idGenerator.generate();
 
 		const version = document.save({ contentDelta, uuid }, actorId);

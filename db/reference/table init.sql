@@ -96,7 +96,7 @@ CREATE TYPE dispatch.status AS ENUM(
     'pending', 'delivered', 'read', 'acknowledged', 'forwarded'
 );
 CREATE TYPE dispatch.inbox_entry_status AS ENUM(
-    'unread', 'read', 'acknowledged'
+	'unread', 'read', 'acknowledged', 'in_handover'
 );
 
 -- WORKFLOW SCHEMA TYPES
@@ -380,6 +380,9 @@ CREATE TABLE identity.staff_activation_failures (
     id VARCHAR(70) PRIMARY KEY,
     staff_id VARCHAR(50)
         REFERENCES identity.staff(id) NOT NULL,
+
+	previous_staff_id VARCHAR(50) REFERENCES identity.staff(id),
+	handed_over_at TIMESTAMPTZ,
     invite_id VARCHAR(50)
         REFERENCES identity.invites(id) NOT NULL,
     failure_stage VARCHAR(100) NOT NULL,
@@ -578,6 +581,17 @@ CREATE TABLE document.document_media_assets (
     PRIMARY KEY (document_id, media_id)
 );
 
+-- Effective digital authorization used by governance rules for internal attachments.
+CREATE TABLE document.document_unit_head_signatures (
+	id VARCHAR(80) PRIMARY KEY,
+	document_id VARCHAR(50) NOT NULL REFERENCES document.documents(id) ON DELETE CASCADE,
+	signed_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	signed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	revoked_by VARCHAR(50) REFERENCES identity.staff(id),
+	revoked_at TIMESTAMPTZ,
+	revocation_reason TEXT
+);
+
 -- documents minutes
 CREATE TABLE document.minutes (
     id VARCHAR(50) PRIMARY KEY,
@@ -744,6 +758,38 @@ CREATE TABLE policy.document_governance_rules (
 	priority INT NOT NULL DEFAULT 100 CHECK(priority >= 0),
 	created_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE policy.document_governance_grants (
+	id VARCHAR(80) PRIMARY KEY,
+	document_id VARCHAR(50) NOT NULL REFERENCES document.documents(id) ON DELETE CASCADE,
+	grantee_staff_id VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	grant_type VARCHAR(30) NOT NULL,
+	granted_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	grantor_authority VARCHAR(30) NOT NULL,
+	reason TEXT NOT NULL,
+	valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	valid_to TIMESTAMPTZ,
+	remaining_uses INT,
+	revoked_by VARCHAR(50) REFERENCES identity.staff(id),
+	revoked_at TIMESTAMPTZ,
+	revocation_reason TEXT,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE policy.document_sensitivity_change_requests (
+	id VARCHAR(80) PRIMARY KEY,
+	document_id VARCHAR(50) NOT NULL REFERENCES document.documents(id) ON DELETE CASCADE,
+	from_sensitivity policy.document_sensitivity_level NOT NULL,
+	to_sensitivity policy.document_sensitivity_level NOT NULL,
+	requested_by VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	reason TEXT NOT NULL,
+	status VARCHAR(20) NOT NULL,
+	reviewed_by VARCHAR(50) REFERENCES identity.staff(id),
+	review_reason TEXT,
+	requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	reviewed_at TIMESTAMPTZ,
+	applied_at TIMESTAMPTZ
 );
 
 ALTER TABLE document.documents

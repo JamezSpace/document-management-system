@@ -38,6 +38,14 @@ class StaffEventsAdapter implements StaffEventsPort {
         });
     }
 
+	async staffPositionChanged(payload: { staffId: string }): Promise<void> {
+		await this.eventBus.emit({
+			eventName: GlobalEventTypes.identity_authority.identity.staff.STAFF_POSITION_CHANGED,
+			occurredAt: new Date(),
+			payload,
+		});
+	}
+
     async staffMediaAssigned(payload: { staffId: string; mediaId: string; assignedBy: string; }): Promise<void> {
         await this.eventBus.emit({
 			eventName: GlobalEventTypes.identity_authority.identity.staff.STAFF_MEDIA_ASSIGNED,

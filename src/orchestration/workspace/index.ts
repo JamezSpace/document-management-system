@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import DocumentRepositoryAdapter from "../../documents/infrastructure/persistence/DocumentRepository.adapter.js";
 import type { OrchestrationDocumentPort } from "../../shared/application/port/intersubsystem/OrchestrationDocument.port.js";
+import type { DocumentGovernanceContextPort } from "../../shared/application/port/intersubsystem/DocumentGovernanceContext.port.js";
 import type { DocumentGovernancePolicyPort } from "../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
+import type { DocumentGovernanceAuditPort } from "../../shared/application/port/intersubsystem/DocumentGovernanceAudit.port.js";
 import type { WorkflowPolicyPort } from "../../shared/application/port/intersubsystem/WorkflowPolicy.port.js";
 import UuidV7Generator from "../../shared/infrastructure/adapters/Uuidv7Generator.adapter.js";
 import EvaluateWorkflowContextUsecase from "../../workflow/application/usecases/EvaluateWorkflowContext.usecase.js";
@@ -16,17 +17,15 @@ export default async function OrchestrationSubsystem(
 	fastify: FastifyInstance,
 	options: {
 		documentGovernancePolicy: DocumentGovernancePolicyPort;
+		documentGovernanceContext: DocumentGovernanceContextPort;
+		documentGovernanceAudit: DocumentGovernanceAuditPort;
+		orchestrationDocument: OrchestrationDocumentPort;
 		workflowPolicy: WorkflowPolicyPort;
 	},
 ) {
-	const documentRepository = new DocumentRepositoryAdapter(fastify.pg);
 	const workflowRepository = new WorkflowRepository(fastify.pg);
 	const workflowEngine = new WorkflowEngine(new UuidV7Generator());
 
-	const orchestrationDocumentPort: OrchestrationDocumentPort = {
-		getDocument: (documentId) =>
-			documentRepository.findDocumentById(documentId),
-	};
 	const orchestrationWorkflowPort = new EvaluateWorkflowContextUsecase(
 		workflowEngine,
 		workflowRepository,
@@ -34,9 +33,11 @@ export default async function OrchestrationSubsystem(
 	);
 
 	const workspaceController = new WorkspaceController(
-		new GetDocumentUsecase(orchestrationDocumentPort),
+		new GetDocumentUsecase(options.orchestrationDocument),
 		new GetWorkflowContextUsecase(orchestrationWorkflowPort),
 		options.documentGovernancePolicy,
+		options.documentGovernanceContext,
+		options.documentGovernanceAudit,
 	);
 
 	await fastify.register(workspaceRoutes, {

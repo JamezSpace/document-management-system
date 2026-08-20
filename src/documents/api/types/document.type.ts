@@ -131,7 +131,8 @@ const documentSchema = Type.Object({
 const documentSchemaForSave = Type.Object(
 	{
 		contentDelta: Type.Unknown(),
-		document: Type.Any(),
+		// Deprecated compatibility field. The server never trusts or persists it.
+		document: Type.Optional(Type.Unknown()),
 	},
 	{ additionalProperties: false },
 );

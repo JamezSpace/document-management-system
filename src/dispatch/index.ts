@@ -11,11 +11,15 @@ import DispatchRecordRepoAdapter from "./infrastructure/persistence/DispatchReco
 import InboxEntryRepoAdapter from "./infrastructure/persistence/InboxEntryRepo.adapter.js";
 import type { DispatchStaffPort } from "../shared/application/port/intersubsystem/DispatchStaff.port.js";
 import type { DispatchDocumentPort } from "../shared/application/port/intersubsystem/DispatchDocument.port.js";
+import type { DocumentGovernanceAuditPort } from "../shared/application/port/intersubsystem/DocumentGovernanceAudit.port.js";
+import TransferredCustodyRepositoryAdapter from "./infrastructure/persistence/TransferredCustodyRepository.adapter.js";
+import HandoverTransferredStaffCustodyUseCase from "./application/usecases/HandoverTransferredStaffCustody.usecase.js";
 
 interface DispatchSubsystemDependencies {
 	globalEventBus: EventBusPort;
 	dispatchStaffAdapter: DispatchStaffPort;
 	dispatchDocumentAdapter: DispatchDocumentPort;
+	documentGovernanceAudit: DocumentGovernanceAuditPort;
 }
 
 export default async function DispatchSubsystem(
@@ -33,6 +37,7 @@ export default async function DispatchSubsystem(
 
 	const dispatchRecordRepository = new DispatchRecordRepoAdapter(postgres);
 	const inboxEntryRepository = new InboxEntryRepoAdapter(postgres);
+	const transferredCustodyRepository = new TransferredCustodyRepositoryAdapter(postgres);
 
 	// events adapter
 	const dispatchEventsAdapter = new DispatchEventsAdapter(globalEventBus);
@@ -58,7 +63,16 @@ export default async function DispatchSubsystem(
 	const dispatchStarterAdapter = new DispatchStarterAdapter(
 		sendCorrespondenceUseCase,
 	);
+	const handoverTransferredStaffCustody = new HandoverTransferredStaffCustodyUseCase(
+		transferredCustodyRepository,
+		transactionManager,
+		dependencies.documentGovernanceAudit,
+	);
 
 	// listener for document subsystem event emission
-	registerAllDispatchSubscribers(globalEventBus, dispatchStarterAdapter);
+	registerAllDispatchSubscribers(
+		globalEventBus,
+		dispatchStarterAdapter,
+		handoverTransferredStaffCustody,
+	);
 }

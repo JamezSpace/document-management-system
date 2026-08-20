@@ -67,6 +67,8 @@ class DispatchDocumentAdapter implements DispatchDocumentPort {
 			},
 			classification: {
 				sensitivity: row.sensitivity,
+				governancePolicyKey: row.governance_policy_key,
+				governancePolicyVersion: row.governance_policy_version,
 				functionCodeId: row.business_function_id,
 				documentTypeId: row.document_type_id,
 				classifiedBy: row.classified_by,
@@ -92,9 +94,10 @@ class DispatchDocumentAdapter implements DispatchDocumentPort {
 	): Promise<DispatchDocumentEntity | null> {
 		try {
 			const query = `
-				SELECT *
-				FROM document.full_document_details
-				WHERE id = $1
+				SELECT details.*, source.governance_policy_key, source.governance_policy_version
+				FROM document.full_document_details details
+				JOIN document.documents source ON source.id = details.id
+				WHERE details.id = $1
 				LIMIT 1;
 			`;
 

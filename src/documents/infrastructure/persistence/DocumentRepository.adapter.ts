@@ -173,6 +173,26 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 		}
 	}
 
+	async discover(searchTerm: string, limit: number): Promise<Document[]> {
+		try {
+			const result = await this.dbPool.query(
+				`SELECT details.*, source.governance_policy_key, source.governance_policy_version
+				 FROM document.full_document_details AS details
+				 JOIN document.documents AS source ON source.id = details.id
+				 WHERE details.title ILIKE $1 OR details.reference_number ILIKE $1
+				 ORDER BY details.updated_at DESC NULLS LAST, details.created_at DESC
+				 LIMIT $2;`,
+				[`%${searchTerm}%`, limit],
+			);
+			return result.rows.map((row) => this.toDomain(row));
+		} catch (error: any) {
+			throw new InfrastructureError(
+				GlobalInfrastructureErrors.persistence.UNREGISTERED_ERROR,
+				{ category: Category.PERSISTENCE, message: error.message },
+			);
+		}
+	}
+
 	async editDocument(
 		document: Document,
 		tx?: TransactionContext,

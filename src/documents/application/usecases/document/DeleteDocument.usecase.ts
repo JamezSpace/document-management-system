@@ -7,6 +7,7 @@ import type LifecycleHistory from "../../../domain/valueobjects/LifecycleHistory
 import type { DocumentEventsPort } from "../../ports/events/DocumentEvents.port.js";
 import type { DocumentRepositoryPort } from "../../ports/repos/DocumentRepository.port.js";
 import type { LifecycleHistoryRepositoryPort } from "../../ports/repos/LifecycleHistoryRepository.port.js";
+import type DocumentGovernanceGuard from "../../services/DocumentGovernanceGuard.service.js";
 
 class DeleteDocumentUseCase {
 	constructor(
@@ -14,6 +15,7 @@ class DeleteDocumentUseCase {
 		private readonly documentRepo: DocumentRepositoryPort,
 		private readonly lifecycleHistoryRepo: LifecycleHistoryRepositoryPort,
 		private readonly documentEvents: DocumentEventsPort,
+		private readonly governance: DocumentGovernanceGuard,
 	) {}
 
 	async deleteDocument(payload: { documentId: string; deletedBy: string }) {
@@ -22,6 +24,13 @@ class DeleteDocumentUseCase {
 		if (!doc) {
 			throw new ApplicationError(ApplicationErrorEnum.DOCUMENT_NOT_FOUND, {
 				message: `Document with id ${payload.documentId} doesn't exist.`,
+				details: { documentId: payload.documentId },
+			});
+		}
+		await this.governance.authorize(doc, payload.deletedBy, "view");
+		if (doc.ownerId !== payload.deletedBy) {
+			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+				message: "Only the document author may delete the document",
 				details: { documentId: payload.documentId },
 			});
 		}

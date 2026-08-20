@@ -4,7 +4,7 @@ import {
 	DocumentLifecycleState,
 	type Document,
 } from "../../../../shared/application/port/intersubsystem/OrchestrationDocument.port.js";
-import type { Staff } from "../../../../shared/application/port/intersubsystem/OrchestrationIdentity.port.js";
+import type { ResolvedDocumentGovernanceContext } from "../../../../shared/application/port/intersubsystem/DocumentGovernanceContext.port.js";
 import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import type { GovernancePolicyReference } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import ApplicationError from "../../../../shared/errors/ApplicationError.error.js";
@@ -13,10 +13,6 @@ import { WorkspaceActions } from "../enum/WorkspaceActions.enum.js";
 
 class WorkspacePolicyEvaluator {
 	static workspaceInitMode: "edit" | "readonly";
-
-	static isActorTheAuthor(document: Document, actor: Staff) {
-		return document.ownerId === actor.id;
-	}
 
 	static getWorkspaceInitMode(document: Document, isAuthor: boolean) {
 		// null lifecycle state covers for a just created document with no content yet
@@ -32,6 +28,7 @@ class WorkspacePolicyEvaluator {
 	static async getAuthorizedBasicActions(
 		document: Document,
 		isAuthor: boolean,
+		governanceContext: ResolvedDocumentGovernanceContext,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
 		policyReference: GovernancePolicyReference,
 	): Promise<WorkspaceActions[]> {
@@ -42,18 +39,19 @@ class WorkspacePolicyEvaluator {
 		switch (docState) {
             case null:
 			case DocumentLifecycleState.DRAFT:
-				actions.push(
-					WorkspaceActions.EDIT,
-					WorkspaceActions.SAVE,
-					WorkspaceActions.DISPATCH,
-				);
+				if (isAuthor) {
+					actions.push(
+						WorkspaceActions.EDIT,
+						WorkspaceActions.SAVE,
+						WorkspaceActions.DISPATCH,
+					);
+				}
 				break;
 			case DocumentLifecycleState.ACTIVE:
 				if (
-					(await documentGovernancePolicy.evaluateWorkspaceAction("export", {
+					(await documentGovernancePolicy.evaluateAction("export", {
 						sensitivity: document.classification.sensitivity,
-						isAuthor,
-						isAuthenticatedInternalStaff: true,
+						...governanceContext,
 					}, policyReference)).allowed
 				) {
 					actions.push(WorkspaceActions.EXPORT);
@@ -107,17 +105,16 @@ class WorkspacePolicyEvaluator {
 
 	static async canCC(
 		document: Document,
-		isAuthor: boolean,
+		governanceContext: ResolvedDocumentGovernanceContext,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
 		policyReference: GovernancePolicyReference,
 	): Promise<boolean> {
 		const docState = document.getCurrentVersion()?.getState() ?? null;
-		const governanceDecision = await documentGovernancePolicy.evaluateWorkspaceAction(
+		const governanceDecision = await documentGovernancePolicy.evaluateAction(
 			"manage_cc",
 			{
 				sensitivity: document.classification.sensitivity,
-				isAuthor,
-				isAuthenticatedInternalStaff: true,
+				...governanceContext,
 			},
 			policyReference,
 		);
@@ -137,7 +134,7 @@ class WorkspacePolicyEvaluator {
 
 	static async canAttach(
 		document: Document,
-		isAuthor: boolean,
+		governanceContext: ResolvedDocumentGovernanceContext,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
 		policyReference: GovernancePolicyReference,
 	) {
@@ -147,13 +144,12 @@ class WorkspacePolicyEvaluator {
 			null,
 			DocumentLifecycleState.DRAFT,
 			DocumentLifecycleState.IN_REVIEW,
-		].includes(docState);
-		const governanceDecision = await documentGovernancePolicy.evaluateWorkspaceAction(
+		].includes(docState as null | "draft" | "in_review");
+		const governanceDecision = await documentGovernancePolicy.evaluateAction(
 			"attach",
 			{
 				sensitivity: document.classification.sensitivity,
-				isAuthor,
-				isAuthenticatedInternalStaff: true,
+				...governanceContext,
 			},
 			policyReference,
 		);
@@ -164,11 +160,12 @@ class WorkspacePolicyEvaluator {
 	static async eval(
 		document: Document,
 		workflowContext: WorkflowContext | null,
-		actor: Staff,
+		actorStaffId: string,
+		governanceContext: ResolvedDocumentGovernanceContext,
 		documentGovernancePolicy: DocumentGovernancePolicyPort,
 	) {
 		// find if actor is author
-		const isActorTheAuthor = this.isActorTheAuthor(document, actor);
+		const isActorTheAuthor = document.ownerId === actorStaffId;
 		const policyReference = this.getBoundPolicyReference(document);
 
 		// load workspace mode
@@ -177,6 +174,7 @@ class WorkspacePolicyEvaluator {
 		const authorizedBasicActions = await this.getAuthorizedBasicActions(
 			document,
 			isActorTheAuthor,
+			governanceContext,
 			documentGovernancePolicy,
 			policyReference,
 		);
@@ -187,21 +185,46 @@ class WorkspacePolicyEvaluator {
 			...authorizedWorkflowActions,
 		];
 
-		if (await this.canCC(document, isActorTheAuthor, documentGovernancePolicy, policyReference))
+		if (await this.canCC(document, governanceContext, documentGovernancePolicy, policyReference))
 			authorizedActions.push(WorkspaceActions.CC);
 
         if(this.canAcknowledge(isActorTheAuthor))
             authorizedActions.push(WorkspaceActions.ACKNOWLEDGE);
         
-		if (await this.canAttach(document, isActorTheAuthor, documentGovernancePolicy, policyReference))
+		if (await this.canAttach(document, governanceContext, documentGovernancePolicy, policyReference))
 			authorizedActions.push(WorkspaceActions.ATTACH);
+
+		const [exportDecision, printDecision] = await Promise.all([
+			documentGovernancePolicy.evaluateAction("export", {
+				sensitivity: document.classification.sensitivity,
+				...governanceContext,
+			}, policyReference),
+			documentGovernancePolicy.evaluateAction("print", {
+				sensitivity: document.classification.sensitivity,
+				...governanceContext,
+			}, policyReference),
+		]);
+		const extractionDirective = (decision: typeof exportDecision) => ({
+			allowed: decision.allowed,
+			reasonCode: decision.reasonCode,
+			obligations: decision.obligations,
+			deliveryMode: decision.obligations.some((item) => item.includes("watermark"))
+				? "server_rendered_only" as const
+				: "direct" as const,
+		});
 
 
 		return {
 			mode: this.workspaceInitMode,
 			authorizedActions,
 			workflow: workflowContext,
-			governance: policyReference,
+			governance: {
+				...policyReference,
+				extraction: {
+					export: extractionDirective(exportDecision),
+					print: extractionDirective(printDecision),
+				},
+			},
 			metadata: {
 				isAuthor: isActorTheAuthor,
 				document,

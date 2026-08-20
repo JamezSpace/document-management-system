@@ -319,8 +319,8 @@ VALUES (
     '2026-03-15'
 );
 
--- Document governance policy (version 1). The header is immutable once active;
--- later policy changes are inserted as a new policy_version.
+-- Document governance policy version 1 historical baseline. Versions 2 and 3 are
+-- activated authoritatively by migrations 0008 and 0009; do not rewrite this row.
 INSERT INTO policy.document_governance_policies (
     id, policy_key, policy_version, schema_version, status,
     effective_from, definition_checksum, created_by, approved_by,

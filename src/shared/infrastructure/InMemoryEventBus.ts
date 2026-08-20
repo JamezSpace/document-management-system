@@ -8,7 +8,7 @@ class InMemoryEventBusAdapter implements EventBusPort {
 		console.log(`[Event Published]: ${event.eventName}`, event.payload);
 
 		// In a simple in-memory version, we just execute listeners immediately
-		eventHandlers.forEach((handler) => handler(event));
+		await Promise.all(eventHandlers.map((handler) => handler(event)));
 	}
 
 	async publishAll(events: EventDetails[]): Promise<void> {

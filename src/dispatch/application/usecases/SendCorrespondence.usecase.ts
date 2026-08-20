@@ -61,8 +61,6 @@ class SendCorrespondenceUseCase {
 					);
 				}
 
-                console.log(addressees)
-
 				const dispatchRecords = addressees.map(
 					(addressee) => 
 						new DispatchRecord({
