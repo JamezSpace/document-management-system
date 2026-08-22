@@ -17,7 +17,7 @@ class SignDocumentAsUnitHeadUseCase {
 		private readonly audit: DocumentGovernanceAuditPort,
 	) {}
 
-	async execute(documentId: string, actorStaffId: string) {
+	async execute(documentId: string, actorStaffId: string, expectedRevision: number) {
 		const document = await this.documents.findDocumentById(documentId);
 		if (!document) {
 			throw new ApplicationError(ApplicationErrorEnum.DOCUMENT_NOT_FOUND, {
@@ -36,15 +36,15 @@ class SignDocumentAsUnitHeadUseCase {
 				policyVersion: document.classification.governancePolicyVersion!,
 				obligations: ["audit_security_event"],
 			});
-			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+			throw new ApplicationError(ApplicationErrorEnum.INVALID_DELEGATE, {
 				message: "Only the effective Unit Head may sign this document",
 				details: { documentId },
 			});
 		}
 
 		const signedAt = new Date();
-		await this.transactionManager.execute((tx) =>
-			this.signatures.recordUnitHeadSignature(
+		const documentRevision = await this.transactionManager.execute(async (tx) => {
+			await this.signatures.recordUnitHeadSignature(
 				{
 					id: `DOC-SIGN-${this.ids.generate()}`,
 					documentId,
@@ -52,8 +52,14 @@ class SignDocumentAsUnitHeadUseCase {
 					signedAt,
 				},
 				tx,
-			),
-		);
+			);
+			const revision = await this.documents.incrementRevision(documentId, expectedRevision, tx);
+			if (!revision) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+				message: "Document revision changed before Unit Head signature",
+				details: { documentId, expectedRevision },
+			});
+			return revision;
+		});
 		await this.audit.record({
 			actorStaffId, documentId, action: "unit_head_signature", outcome: "success",
 			reasonCode: "effective_unit_head_signed",
@@ -61,7 +67,7 @@ class SignDocumentAsUnitHeadUseCase {
 			policyVersion: document.classification.governancePolicyVersion!,
 			obligations: ["audit_security_event"],
 		});
-		return { documentId, signedBy: actorStaffId, signedAt };
+		return { documentId, signedBy: actorStaffId, signedAt, documentRevision };
 	}
 }
 

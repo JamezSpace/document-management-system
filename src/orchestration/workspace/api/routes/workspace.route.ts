@@ -42,7 +42,7 @@ async function workspaceRoutes(
 					request.query.canvas ?? "internal",
 				);
 
-			return reply.code(200).send({
+			return reply.header("ETag", `\"${result.metadata.document.revision}\"`).code(200).send({
 				success: true,
 				data: result
 			});

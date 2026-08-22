@@ -111,6 +111,36 @@ export const ApplicationErrorEnum = {
 		category: ErrorCategory.CONFLICT,
 		retryable: false,
 	},
+	GRANT_EXPIRED: {
+		codeName: "governance_grant_expired",
+		httpStatusCode: StatusCodes.GONE,
+		category: ErrorCategory.AUTHORIZATION,
+		retryable: false,
+	},
+	GRANT_EXHAUSTED: {
+		codeName: "governance_grant_exhausted",
+		httpStatusCode: StatusCodes.CONFLICT,
+		category: ErrorCategory.AUTHORIZATION,
+		retryable: false,
+	},
+	GRANT_REVOKED: {
+		codeName: "governance_grant_revoked",
+		httpStatusCode: StatusCodes.GONE,
+		category: ErrorCategory.AUTHORIZATION,
+		retryable: false,
+	},
+	INVALID_DELEGATE: {
+		codeName: "invalid_governance_delegate",
+		httpStatusCode: StatusCodes.FORBIDDEN,
+		category: ErrorCategory.AUTHORIZATION,
+		retryable: false,
+	},
+	STALE_GOVERNANCE_DECISION: {
+		codeName: "stale_governance_decision",
+		httpStatusCode: StatusCodes.CONFLICT,
+		category: ErrorCategory.CONFLICT,
+		retryable: true,
+	},
 	USER_NOT_AUTHENTICATED: {
 		codeName: "user_not_authenticated",
 		httpStatusCode: StatusCodes.UNAUTHORIZED,

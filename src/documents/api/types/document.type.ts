@@ -62,6 +62,7 @@ const documentSchema = Type.Object({
 	ownerId: Type.String(),
 	title: Type.String(),
 	referenceNumber: Type.String(),
+	revision: Type.Integer({ minimum: 1 }),
 
 	currentVersion: Type.Object({
 		id: Type.String({ minLength: 1 }),

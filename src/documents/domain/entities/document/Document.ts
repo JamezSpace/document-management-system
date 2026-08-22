@@ -14,6 +14,7 @@ interface DocumentPayload {
 	title: string;
 	version?: DocumentVersion | null;
 	referenceNumber?: string | null;
+	revision?: number;
 
 	addressees: AddresseeMetadata[];
 	classification: ClassificationMetadata;
@@ -40,6 +41,7 @@ class Document {
 	readonly title: string;
 	private currentVersion: DocumentVersion | null;
 	readonly referenceNumber: string | null;
+	readonly revision: number;
 
 	// Governance Domains (Value Objects)
 	addressees: AddresseeMetadata[];
@@ -57,6 +59,7 @@ class Document {
 		this.title = payload.title;
 		this.currentVersion = payload.version ?? null;
 		this.referenceNumber = payload.referenceNumber ?? null;
+		this.revision = payload.revision ?? 1;
 
 		this.classification = payload.classification;
 		this.correspondence = payload.correspondence;

@@ -38,6 +38,7 @@ class DocumentCanvasProjector {
 				title: document.title,
 				currentVersion: document.getCurrentVersion(),
 				referenceNumber: document.referenceNumber,
+				revision: document.revision,
 				addressees: visibleAddressees,
 				classification: document.classification,
 				correspondence: document.correspondence,

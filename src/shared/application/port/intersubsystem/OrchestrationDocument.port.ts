@@ -24,6 +24,7 @@ interface Document {
 	ownerId: string;
 	title: string;
 	referenceNumber: string | null;
+	revision: number;
 	addressees: Array<{
 		recipientUnitId: string;
 		addressedToDesignationId: string;

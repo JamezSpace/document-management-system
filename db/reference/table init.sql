@@ -479,6 +479,7 @@ CREATE TABLE document.documents (
     title VARCHAR(200) NOT NULL,
     owner_id varchar(50) REFERENCES identity.staff(id) NOT NULL,
     reference_number VARCHAR(50),
+	revision BIGINT NOT NULL DEFAULT 1 CHECK (revision > 0),
 
 	-- version data
 	current_version_id varchar(50),
@@ -790,6 +791,21 @@ CREATE TABLE policy.document_sensitivity_change_requests (
 	requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	reviewed_at TIMESTAMPTZ,
 	applied_at TIMESTAMPTZ
+);
+
+CREATE TABLE policy.document_extractions (
+	id VARCHAR(80) PRIMARY KEY,
+	document_id VARCHAR(50) NOT NULL REFERENCES document.documents(id) ON DELETE CASCADE,
+	document_revision BIGINT NOT NULL,
+	actor_staff_id VARCHAR(50) NOT NULL REFERENCES identity.staff(id),
+	extraction_action VARCHAR(20) NOT NULL,
+	grant_id VARCHAR(80) REFERENCES policy.document_governance_grants(id),
+	policy_key VARCHAR(100) NOT NULL,
+	policy_version INT NOT NULL,
+	obligations TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+	watermark_text TEXT,
+	artifact_sha256 CHAR(64) NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE document.documents

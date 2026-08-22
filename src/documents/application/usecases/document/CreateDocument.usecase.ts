@@ -190,6 +190,7 @@ class DocumentCreationUseCase {
 		document: Document,
 		contentDelta: unknown,
 		actorId: string,
+		expectedRevision: number,
 	) {
 		if (document.ownerId !== actorId) {
 			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
@@ -210,8 +211,13 @@ class DocumentCreationUseCase {
 
 				const savedDoc = await this.documentRepo.editDocument(
 					document,
+					expectedRevision,
 					transactionInstance,
 				);
+				if (!savedDoc) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+					message: "Document revision no longer matches the supplied If-Match value",
+					details: { documentId: document.id, expectedRevision },
+				});
 
 				await this.documentAddresseeRepo.deleteByDocumentId(
 					document.id,

@@ -18,7 +18,7 @@ class DeleteDocumentUseCase {
 		private readonly governance: DocumentGovernanceGuard,
 	) {}
 
-	async deleteDocument(payload: { documentId: string; deletedBy: string }) {
+	async deleteDocument(payload: { documentId: string; deletedBy: string; expectedRevision: number }) {
 		const doc = await this.documentRepo.findDocumentById(payload.documentId);
 
 		if (!doc) {
@@ -47,7 +47,11 @@ class DeleteDocumentUseCase {
 			});
 		}
 
-		await this.documentRepo.hardDeleteDocument(payload.documentId);
+		const deleted = await this.documentRepo.hardDeleteDocument(payload.documentId, payload.expectedRevision);
+		if (!deleted) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+			message: "Document revision changed before deletion",
+			details: { documentId: payload.documentId, expectedRevision: payload.expectedRevision },
+		});
 
         const lifecycleHistoryRepoPayload: Omit<LifecycleHistory, 'documentVersionId' | 'documentId'> = {
             id: "CYCLE-HSTORY-" + this.idGenerator.generate(),

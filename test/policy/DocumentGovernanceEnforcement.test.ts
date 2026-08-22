@@ -7,6 +7,9 @@ import DocumentCanvasProjector from "../../src/orchestration/workspace/applicati
 import type { DocumentGovernancePolicyPort } from "../../src/shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import DocumentGovernanceObligationExecutor from "../../src/documents/application/services/DocumentGovernanceObligationExecutor.service.js";
 import DiscoverDocumentsUseCase from "../../src/documents/application/usecases/document/DiscoverDocuments.usecase.js";
+import RenderDocumentExtractionUseCase from "../../src/documents/application/usecases/document/RenderDocumentExtraction.usecase.js";
+import ApplicationError from "../../src/shared/errors/ApplicationError.error.js";
+import { ApplicationErrorEnum } from "../../src/shared/errors/enum/application.enum.js";
 
 const policyReference = {
 	policyId: "nexusfons_document_governance",
@@ -106,7 +109,7 @@ test("attachment command denies confidential bindings before persistence", async
 	);
 
 	await assert.rejects(
-		useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1" }),
+		useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1", expectedRevision: 1 }),
 		(error: any) => error.errorCode === "not_allowed",
 	);
 	assert.equal(attachmentWasSaved, false);
@@ -132,7 +135,7 @@ test("attachment command requires Unit Head signature evidence for internal docu
 	);
 
 	await assert.rejects(
-		useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1" }),
+		useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1", expectedRevision: 1 }),
 		(error: any) => error.errorCode === "not_allowed",
 	);
 	assert.equal(attachmentWasSaved, false);
@@ -145,7 +148,7 @@ test("attachment command binds requester-owned media for a public draft", async 
 		resolve: async () => context,
 	}, obligations);
 	const useCase = new ManageDocumentAttachmentUseCase(
-		{ findDocumentById: async () => documentFixture("public") } as any,
+		{ findDocumentById: async () => documentFixture("public"), incrementRevision: async () => 2 } as any,
 		{
 			mediaExistsForUploader: async () => true,
 			save: async (payload: unknown) => { savedPayload = payload; },
@@ -156,7 +159,7 @@ test("attachment command binds requester-owned media for a public draft", async 
 		{ execute: async (operation: any) => operation({ client: {} }) } as any,
 	);
 
-	await useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1" });
+	await useCase.attach({ documentId: "DOC-1", mediaId: "MEDIA-1", actorStaffId: "STAFF-1", expectedRevision: 1 });
 	assert.deepEqual(savedPayload, {
 		documentId: "DOC-1",
 		documentVersionId: null,
@@ -188,8 +191,33 @@ test("discovery silently removes policy-denied candidates", async () => {
 	} as any, guard);
 
 	const result = await useCase.execute("policy", "STAFF-1", 10);
-	assert.deepEqual(result.map((item) => item.id), ["DOC-1"]);
+	assert.deepEqual(result.items.map((item) => item.id), ["DOC-1"]);
 	assert.deepEqual(auditEvents, [{ outcome: "denied", documentId: "DOC-2" }]);
+});
+
+test("an expired confidential guest-reader grant returns its stable access error", async () => {
+	const deniedPolicy: DocumentGovernancePolicyPort = {
+		...canvasPolicy,
+		evaluateAction: async () => ({
+			allowed: false,
+			...policyReference,
+			reasonCode: "confidential_explicit_access_required",
+			obligations: ["audit_security_event"],
+		}),
+	};
+	const guard = new DocumentGovernanceGuard(deniedPolicy, {
+		hasRestrictedClearance: async () => false,
+		resolve: async () => ({
+			...context,
+			relationships: [],
+			guestReaderGrantStatus: "expired",
+		}),
+	}, obligations);
+
+	await assert.rejects(
+		guard.authorize(documentFixture("confidential"), "STAFF-2", "view"),
+		(error: any) => error.errorCode === "governance_grant_expired",
+	);
 });
 
 test("obligation executor writes security audits for allowed sensitive operations", async () => {
@@ -210,4 +238,75 @@ test("obligation executor writes security audits for allowed sensitive operation
 		outcome: "success",
 	});
 	assert.equal(events.length, 1);
+});
+
+test("server extraction renders a watermarked PDF and consumes one confidential grant", async () => {
+	let extractionRecord: any = null;
+	let consumed = false;
+	const document = {
+		...documentFixture("confidential"),
+		revision: 7,
+		getCurrentVersion: () => ({
+			contentDelta: { ops: [{ insert: "Confidential body text" }] },
+			getState: () => "active",
+		}),
+	};
+	const useCase = new RenderDocumentExtractionUseCase(
+		{ generate: () => "EXTRACT-1" },
+		{
+			findDocumentById: async () => document,
+			lockRevision: async () => true,
+			incrementRevision: async () => 8,
+		} as any,
+		{
+			consumeActiveExport: async () => {
+				consumed = true;
+				return { id: "GRANT-1" };
+			},
+			listByDocument: async () => [],
+		} as any,
+		{ record: async (record: unknown) => { extractionRecord = record; } },
+		{
+			authorize: async () => ({
+				decision: {
+					allowed: true,
+					...policyReference,
+					reasonCode: "confidential_export_granted",
+					obligations: ["identity_timestamp_watermark"],
+				},
+				context,
+			}),
+		} as any,
+		{ execute: async (operation: any) => operation({ client: {} }) },
+	);
+
+	const result = await useCase.execute("DOC-1", "STAFF-1", "export", 7);
+	assert.equal(result.artifact.subarray(0, 8).toString(), "%PDF-1.4");
+	assert.match(result.artifact.toString("latin1"), /NexusFons confidential/);
+	assert.equal(result.documentRevision, 8);
+	assert.equal(consumed, true);
+	assert.equal(extractionRecord.grantId, "GRANT-1");
+});
+
+test("expired confidential extraction grants return a stable error code", async () => {
+	const document = {
+		...documentFixture("confidential"),
+		revision: 3,
+		getCurrentVersion: () => ({ contentDelta: null, getState: () => "active" }),
+	};
+	const useCase = new RenderDocumentExtractionUseCase(
+		{ generate: () => "EXTRACT-2" },
+		{ findDocumentById: async () => document } as any,
+		{
+			listByDocument: async () => [{ granteeStaffId: "STAFF-1", grantType: "export", status: "expired" }],
+		} as any,
+		{ record: async () => undefined },
+		{ authorize: async () => { throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, { message: "denied" }); } } as any,
+		{ execute: async (operation: any) => operation({ client: {} }) },
+	);
+
+	await assert.rejects(
+		useCase.execute("DOC-1", "STAFF-1", "export", 3),
+		(error: any) => error.errorCode === "governance_grant_expired",
+	);
 });

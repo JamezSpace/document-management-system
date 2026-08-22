@@ -29,6 +29,7 @@ class ManageDocumentGovernanceGrantUseCase {
 		validTo?: Date | null;
 		remainingUses?: number | null;
 		actorStaffId: string;
+		expectedRevision: number;
 	}) {
 		const document = await this.requireDocument(payload.documentId);
 		if (document.classification.sensitivity !== "confidential") {
@@ -60,8 +61,8 @@ class ManageDocumentGovernanceGrantUseCase {
 			});
 		}
 
-		const record = await this.transactionManager.execute((tx) =>
-			this.grants.create(
+		const result = await this.transactionManager.execute(async (tx) => {
+			const grant = await this.grants.create(
 				{
 					id: `DOC-GRANT-${this.ids.generate()}`,
 					documentId: document.id,
@@ -77,18 +78,24 @@ class ManageDocumentGovernanceGrantUseCase {
 						: null,
 				},
 				tx,
-			),
-		);
+			);
+			const revision = await this.documents.incrementRevision(document.id, payload.expectedRevision, tx);
+			if (!revision) throw this.stale(document.id, payload.expectedRevision);
+			return { grant, revision };
+		});
+		const record = result.grant;
 		await this.auditGovernanceChange(document, payload.actorStaffId, "grant_access", "grant_created", {
 			grantId: record.id,
 			grantType: record.grantType,
 			granteeStaffId: record.granteeStaffId,
 			reason,
 		});
-		return record;
+		return { grant: record, documentRevision: result.revision };
 	}
 
-	async revoke(documentId: string, grantId: string, actorStaffId: string, reasonText: string) {
+	async revoke(documentId: string, grantId: string, actorStaffId: string, reasonText: string, expectedRevision: number) {
+		const document = await this.requireDocument(documentId);
+		await this.resolveAuthority(document.id, document.ownerId, actorStaffId);
 		const grant = await this.grants.findById(grantId);
 		if (!grant) {
 			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
@@ -100,12 +107,18 @@ class ManageDocumentGovernanceGrantUseCase {
 				message: "Governance grant does not belong to this document",
 			});
 		}
-		const document = await this.requireDocument(grant.documentId);
-		await this.resolveAuthority(document.id, document.ownerId, actorStaffId);
+		if (grant.status === "revoked") throw new ApplicationError(ApplicationErrorEnum.GRANT_REVOKED, { message: "Governance grant has already been revoked" });
+		if (grant.status === "expired") throw new ApplicationError(ApplicationErrorEnum.GRANT_EXPIRED, { message: "Governance grant has expired" });
 		const reason = this.requireReason(reasonText);
-		const revoked = await this.transactionManager.execute((tx) =>
-			this.grants.revoke(grantId, actorStaffId, reason, tx),
-		);
+		const result = await this.transactionManager.execute(async (tx) => {
+			const revoked = await this.grants.revoke(grantId, actorStaffId, reason, tx);
+			const revision = revoked
+				? await this.documents.incrementRevision(documentId, expectedRevision, tx)
+				: null;
+			if (revoked && !revision) throw this.stale(documentId, expectedRevision);
+			return { revoked, revision };
+		});
+		const { revoked } = result;
 		if (!revoked) {
 			throw new ApplicationError(ApplicationErrorEnum.CONFLICT, {
 				message: "Governance grant has already been revoked",
@@ -116,7 +129,18 @@ class ManageDocumentGovernanceGrantUseCase {
 			granteeStaffId: grant.granteeStaffId,
 			reason,
 		});
-		return { grantId, revoked };
+		return { grantId, revoked, documentRevision: result.revision };
+	}
+
+	async list(documentId: string, actorStaffId: string) {
+		const document = await this.requireDocument(documentId);
+		const context = await this.contexts.resolve(documentId, actorStaffId);
+		const canManage = document.ownerId === actorStaffId ||
+			context.relationships.includes("unit_head") ||
+			context.relationships.includes("delegated_unit_head");
+		const records = await this.grants.listByDocument(documentId);
+		if (canManage) return records;
+		return records.filter((record) => record.granteeStaffId === actorStaffId);
 	}
 
 	private async resolveAuthority(documentId: string, ownerId: string, actorStaffId: string) {
@@ -125,8 +149,15 @@ class ManageDocumentGovernanceGrantUseCase {
 		if (context.relationships.includes("unit_head") || context.relationships.includes("delegated_unit_head")) {
 			return "unit_head" as const;
 		}
-		throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+		throw new ApplicationError(ApplicationErrorEnum.INVALID_DELEGATE, {
 			message: "Only the originator or effective Unit Head may manage governance grants",
+		});
+	}
+
+	private stale(documentId: string, expectedRevision: number) {
+		return new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+			message: "Document revision changed before the governance grant mutation",
+			details: { documentId, expectedRevision },
 		});
 	}
 

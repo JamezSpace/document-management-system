@@ -18,12 +18,13 @@ class ManageDocumentAttachmentUseCase {
 		documentId: string;
 		mediaId: string;
 		actorStaffId: string;
+		expectedRevision: number;
 	}) {
 		const document = await this.requireDocument(payload.documentId);
 		await this.governance.authorize(document, payload.actorStaffId, "attach");
 		this.ensureAttachmentState(document.getCurrentVersion()?.getState() ?? null);
 
-		await this.transactionManager.execute(async (tx) => {
+		const documentRevision = await this.transactionManager.execute(async (tx) => {
 			const ownsMedia = await this.attachments.mediaExistsForUploader(
 				payload.mediaId,
 				payload.actorStaffId,
@@ -44,9 +45,15 @@ class ManageDocumentAttachmentUseCase {
 				},
 				tx,
 			);
+			const revision = await this.documents.incrementRevision(payload.documentId, payload.expectedRevision, tx);
+			if (!revision) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+				message: "Document revision changed before attachment was added",
+				details: { documentId: payload.documentId, expectedRevision: payload.expectedRevision },
+			});
+			return revision;
 		});
 
-		return this.attachments.listByDocument(payload.documentId);
+		return { attachments: await this.attachments.listByDocument(payload.documentId), documentRevision };
 	}
 
 	async list(documentId: string, actorStaffId: string) {
@@ -55,7 +62,7 @@ class ManageDocumentAttachmentUseCase {
 		return this.attachments.listByDocument(documentId);
 	}
 
-	async remove(documentId: string, mediaId: string, actorStaffId: string) {
+	async remove(documentId: string, mediaId: string, actorStaffId: string, expectedRevision: number) {
 		const document = await this.requireDocument(documentId);
 		await this.governance.authorize(document, actorStaffId, "attach");
 		if (document.ownerId !== actorStaffId) {
@@ -63,7 +70,16 @@ class ManageDocumentAttachmentUseCase {
 				message: "Only the document author may remove an attachment",
 			});
 		}
-		return this.attachments.remove(documentId, mediaId);
+		return this.transactionManager.execute(async (tx) => {
+			const removed = await this.attachments.remove(documentId, mediaId, tx);
+			if (!removed) return false;
+			const revision = await this.documents.incrementRevision(documentId, expectedRevision, tx);
+			if (!revision) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+				message: "Document revision changed before attachment removal",
+				details: { documentId, expectedRevision },
+			});
+			return { removed: true, documentRevision: revision };
+		});
 	}
 
 	private async requireDocument(documentId: string) {

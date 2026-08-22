@@ -8,7 +8,7 @@ import type {
 class DocumentSensitivityChangeRepositoryAdapter implements DocumentSensitivityChangeRepositoryPort {
 	constructor(private readonly dbPool: PostgresDb) {}
 
-	async create(record: DocumentSensitivityChangeRecord, tx?: TransactionContext) {
+	async create(record: Omit<DocumentSensitivityChangeRecord, "reviewedBy" | "reviewReason" | "reviewedAt" | "appliedAt">, tx?: TransactionContext) {
 		const executor = tx?.client ?? this.dbPool;
 		const result = await executor.query(
 			`INSERT INTO policy.document_sensitivity_change_requests (
@@ -56,6 +56,26 @@ class DocumentSensitivityChangeRepositoryAdapter implements DocumentSensitivityC
 		return (result.rowCount ?? 0) === 1;
 	}
 
+	async listByDocument(documentId: string) {
+		const result = await this.dbPool.query(
+			`SELECT * FROM policy.document_sensitivity_change_requests
+			 WHERE document_id = $1 ORDER BY requested_at DESC, id DESC;`,
+			[documentId],
+		);
+		return result.rows.map((row) => this.map(row));
+	}
+
+	async listPending(limit: number, cursor?: { requestedAt: Date; id: string } | null) {
+		const result = await this.dbPool.query(
+			`SELECT * FROM policy.document_sensitivity_change_requests
+			 WHERE status = 'pending'
+				AND ($2::timestamptz IS NULL OR (requested_at, id) > ($2, $3))
+			 ORDER BY requested_at, id LIMIT $1;`,
+			[limit, cursor?.requestedAt ?? null, cursor?.id ?? null],
+		);
+		return result.rows.map((row) => this.map(row));
+	}
+
 	private map(row: any): DocumentSensitivityChangeRecord {
 		return {
 			id: row.id,
@@ -66,6 +86,10 @@ class DocumentSensitivityChangeRepositoryAdapter implements DocumentSensitivityC
 			reason: row.reason,
 			status: row.status,
 			requestedAt: row.requested_at,
+			reviewedBy: row.reviewed_by ?? null,
+			reviewReason: row.review_reason ?? null,
+			reviewedAt: row.reviewed_at ?? null,
+			appliedAt: row.applied_at ?? null,
 		};
 	}
 }

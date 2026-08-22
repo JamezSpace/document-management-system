@@ -57,6 +57,8 @@ import DocumentSensitivityChangeRepositoryAdapter from "./infrastructure/persist
 import ManageDocumentGovernanceGrantUseCase from "./application/usecases/document/ManageDocumentGovernanceGrant.usecase.js";
 import ManageDocumentSensitivityUseCase from "./application/usecases/document/ManageDocumentSensitivity.usecase.js";
 import DiscoverDocumentsUseCase from "./application/usecases/document/DiscoverDocuments.usecase.js";
+import RenderDocumentExtractionUseCase from "./application/usecases/document/RenderDocumentExtraction.usecase.js";
+import DocumentExtractionRepositoryAdapter from "./infrastructure/persistence/DocumentExtractionRepository.adapter.js";
 
 interface DocumentSubsystemDependencies {
     documentIdentityAdapter: DocumentIdentityPort;
@@ -94,6 +96,7 @@ export default async function DocumentSubsystem(
 	const documentSignatureRepository = new DocumentSignatureRepositoryAdapter(postgres);
 	const documentGovernanceGrantRepository = new DocumentGovernanceGrantRepositoryAdapter(postgres);
 	const documentSensitivityChangeRepository = new DocumentSensitivityChangeRepositoryAdapter(postgres);
+	const documentExtractionRepository = new DocumentExtractionRepositoryAdapter(postgres);
 
 	const refSequenceRepository =
 		new ReferenceSequenceRepositoryAdapter(postgres);
@@ -176,6 +179,14 @@ export default async function DocumentSubsystem(
 		documentRepository,
 		governanceGuard,
 	);
+	const renderDocumentExtractionUseCase = new RenderDocumentExtractionUseCase(
+		idGenerator,
+		documentRepository,
+		documentGovernanceGrantRepository,
+		documentExtractionRepository,
+		governanceGuard,
+		transactionManager,
+	);
 
 	const submitDocumentUseCase = new DocumentSubmissionUseCase(
         idGenerator,
@@ -252,6 +263,7 @@ export default async function DocumentSubsystem(
 		manageDocumentGovernanceGrantUseCase,
 		manageDocumentSensitivityUseCase,
 		discoverDocumentsUseCase,
+		renderDocumentExtractionUseCase,
 	);
 
 	const corrSubjectController = new CorrespondenceSubjectController(

@@ -47,7 +47,8 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 	server.register(fastifyCors, {
 		origin: process.env.FRONTEND_ORIGIN ?? false,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-		allowedHeaders: ["Content-Type", "Authorization"],
+		allowedHeaders: ["Content-Type", "Authorization", "If-Match"],
+		exposedHeaders: ["ETag", "Content-Disposition", "X-Artifact-SHA256", "X-Governance-Policy", "X-Governance-Obligations"],
 	});
 	server.register(fastifyPostgres, dbConfig);
 	server.register(fastifyMultipart, {
@@ -156,6 +157,23 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 						message: error.message,
 						retryable: error.retryable,
 						details: error.details,
+						requestId: request.id,
+					},
+				},
+			});
+		}
+
+		const validationError = error as { validation?: unknown[]; message?: string };
+		if (Array.isArray(validationError.validation)) {
+			return reply.code(400).send({
+				success: false,
+				error: {
+					code: { codeName: "validation_error", httpStatusCode: 400 },
+					context: {
+						category: "validation",
+						message: validationError.message ?? "Request validation failed",
+						retryable: false,
+						details: { validation: validationError.validation },
 						requestId: request.id,
 					},
 				},

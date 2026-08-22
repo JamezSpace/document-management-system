@@ -17,6 +17,7 @@ interface GovernanceContextRow {
 	has_required_clearance: boolean;
 	has_effective_unit_head_signature: boolean;
 	has_active_guest_reader_grant: boolean;
+	guest_reader_grant_status: "active" | "expired" | "revoked" | null;
 	export_grant_active: boolean;
 	export_grant_granted_by: "originator" | "unit_head" | null;
 	export_grant_valid_to: Date | null;
@@ -149,20 +150,27 @@ class DocumentGovernanceContextAdapter
 						SELECT 1 FROM document.document_unit_head_signatures signature
 						WHERE signature.document_id = $1 AND signature.revoked_at IS NULL
 					) AS has_effective_unit_head_signature,
-					EXISTS (
-						SELECT 1 FROM policy.document_governance_grants grant_record
-						WHERE grant_record.document_id = $1
-							AND grant_record.grantee_staff_id = $2
-							AND grant_record.grant_type = 'guest_reader'
-							AND grant_record.revoked_at IS NULL
-							AND grant_record.valid_from <= NOW()
-							AND (grant_record.valid_to IS NULL OR NOW() < grant_record.valid_to)
-					) AS has_active_guest_reader_grant,
+					COALESCE(guest_reader_grant.status = 'active', FALSE) AS has_active_guest_reader_grant,
+					guest_reader_grant.status AS guest_reader_grant_status,
 					COALESCE(export_grant.active, FALSE) AS export_grant_active,
 					export_grant.grantor_authority AS export_grant_granted_by,
 					export_grant.valid_to AS export_grant_valid_to,
 					export_grant.remaining_uses AS export_grant_remaining_uses
 				FROM (VALUES (1)) AS base(dummy)
+				LEFT JOIN LATERAL (
+					SELECT CASE
+						WHEN grant_record.revoked_at IS NOT NULL THEN 'revoked'
+						WHEN grant_record.valid_to IS NOT NULL AND grant_record.valid_to <= NOW() THEN 'expired'
+						ELSE 'active'
+					END AS status
+					FROM policy.document_governance_grants grant_record
+					WHERE grant_record.document_id = $1
+						AND grant_record.grantee_staff_id = $2
+						AND grant_record.grant_type = 'guest_reader'
+						AND grant_record.valid_from <= NOW()
+					ORDER BY grant_record.created_at DESC
+					LIMIT 1
+				) guest_reader_grant ON TRUE
 				LEFT JOIN LATERAL (
 					SELECT TRUE AS active, grant_record.grantor_authority,
 						grant_record.valid_to, grant_record.remaining_uses
@@ -198,6 +206,7 @@ class DocumentGovernanceContextAdapter
 			isAuthenticatedInternalStaff: row.is_authenticated_internal_staff,
 			hasRequiredClearance: row.has_required_clearance,
 			hasActiveGuestReaderGrant: row.has_active_guest_reader_grant,
+			guestReaderGrantStatus: row.guest_reader_grant_status,
 			hasEffectiveUnitHeadSignature: row.has_effective_unit_head_signature,
 			exportGrant: row.export_grant_active && row.export_grant_granted_by
 				? {

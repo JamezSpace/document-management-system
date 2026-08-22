@@ -51,7 +51,14 @@ class DocumentGovernanceGuard {
 				action,
 				outcome: "denied",
 			});
-			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
+			const useGuestGrantError = document.classification.sensitivity === "confidential"
+				&& (action === "view" || action === "discover");
+			const grantError = useGuestGrantError && context.guestReaderGrantStatus === "expired"
+				? ApplicationErrorEnum.GRANT_EXPIRED
+				: useGuestGrantError && context.guestReaderGrantStatus === "revoked"
+					? ApplicationErrorEnum.GRANT_REVOKED
+					: ApplicationErrorEnum.NOT_ALLOWED;
+			throw new ApplicationError(grantError, {
 				message: `Document governance denied '${action}'`,
 				details: {
 					documentId: document.id,

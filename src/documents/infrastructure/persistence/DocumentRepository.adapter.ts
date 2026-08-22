@@ -45,6 +45,7 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 			title: row.title,
 			version,
 			referenceNumber: row.reference_number,
+			revision: Number(row.revision ?? 1),
 
 			correspondence: {
 				originatingUnitId: row.originating_unit_id,
@@ -173,16 +174,17 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 		}
 	}
 
-	async discover(searchTerm: string, limit: number): Promise<Document[]> {
+	async discover(searchTerm: string, limit: number, cursor?: { createdAt: Date; id: string } | null): Promise<Document[]> {
 		try {
 			const result = await this.dbPool.query(
 				`SELECT details.*, source.governance_policy_key, source.governance_policy_version
 				 FROM document.full_document_details AS details
 				 JOIN document.documents AS source ON source.id = details.id
-				 WHERE details.title ILIKE $1 OR details.reference_number ILIKE $1
-				 ORDER BY details.updated_at DESC NULLS LAST, details.created_at DESC
+				 WHERE (details.title ILIKE $1 OR details.reference_number ILIKE $1)
+					AND ($3::timestamptz IS NULL OR (details.created_at, details.id) < ($3, $4))
+				 ORDER BY details.created_at DESC, details.id DESC
 				 LIMIT $2;`,
-				[`%${searchTerm}%`, limit],
+				[`%${searchTerm}%`, limit, cursor?.createdAt ?? null, cursor?.id ?? null],
 			);
 			return result.rows.map((row) => this.toDomain(row));
 		} catch (error: any) {
@@ -195,6 +197,7 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 
 	async editDocument(
 		document: Document,
+		expectedRevision: number,
 		tx?: TransactionContext,
 	): Promise<Document | null> {
 		try {
@@ -221,8 +224,9 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 					retention_start_date = $19,
 					disposal_eligibility_date = $20,
 					archival_required = $21,
-					updated_at = now()
-				WHERE id = $1
+					updated_at = now(),
+					revision = revision + 1
+				WHERE id = $1 AND revision = $22
 				RETURNING *;
 			`;
 
@@ -249,6 +253,7 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 				document.retention.retentionStartDate,
 				document.retention.disposalEligibilityDate,
 				document.retention.archivalRequired,
+				expectedRevision,
 			]);
 
             const docAddressees = document.addressees;
@@ -274,11 +279,32 @@ class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 		);
 	}
 
-	async hardDeleteDocument(id: string): Promise<void> {
-		await this.dbPool.query(
-			"DELETE FROM document.documents WHERE id = $1;",
-			[id],
+	async hardDeleteDocument(id: string, expectedRevision: number): Promise<boolean> {
+		const result = await this.dbPool.query(
+			"DELETE FROM document.documents WHERE id = $1 AND revision = $2;",
+			[id, expectedRevision],
 		);
+		return (result.rowCount ?? 0) === 1;
+	}
+
+	async incrementRevision(id: string, expectedRevision: number, tx?: TransactionContext): Promise<number | null> {
+		const executor = tx?.client ?? this.dbPool;
+		const result = await executor.query<{ revision: string | number }>(
+			`UPDATE document.documents
+			 SET revision = revision + 1, updated_at = NOW()
+			 WHERE id = $1 AND revision = $2
+			 RETURNING revision;`,
+			[id, expectedRevision],
+		);
+		return result.rows[0] ? Number(result.rows[0].revision) : null;
+	}
+
+	async lockRevision(id: string, expectedRevision: number, tx: TransactionContext): Promise<boolean> {
+		const result = await tx.client.query(
+			"SELECT 1 FROM document.documents WHERE id = $1 AND revision = $2 FOR UPDATE;",
+			[id, expectedRevision],
+		);
+		return result.rows.length === 1;
 	}
 
 	async fetchDocumentsByStaff(staffId: string): Promise<Document[]> {

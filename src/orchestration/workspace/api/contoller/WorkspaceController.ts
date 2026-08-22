@@ -1,5 +1,7 @@
 import ApiError from "../../../../shared/errors/NexusError.js";
 import { ApiErrorEnum } from "../../../../shared/errors/enum/api.enum.js";
+import ApplicationError from "../../../../shared/errors/ApplicationError.error.js";
+import { ApplicationErrorEnum } from "../../../../shared/errors/enum/application.enum.js";
 import type { DocumentGovernancePolicyPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernancePolicy.port.js";
 import type { DocumentGovernanceContextPort } from "../../../../shared/application/port/intersubsystem/DocumentGovernanceContext.port.js";
 import WorkspacePolicyEvaluator from "../../application/services/WorkspacePolicyEvaluator.js";
@@ -58,7 +60,13 @@ class WorkspaceController {
 				policyVersion: viewDecision.policyVersion,
 				obligations: viewDecision.obligations,
 			});
-			throw new ApiError(ApiErrorEnum.NOT_ALLOWED, {
+			const useGuestGrantError = document.classification.sensitivity === "confidential";
+			const grantError = useGuestGrantError && governanceContext.guestReaderGrantStatus === "expired"
+				? ApplicationErrorEnum.GRANT_EXPIRED
+				: useGuestGrantError && governanceContext.guestReaderGrantStatus === "revoked"
+					? ApplicationErrorEnum.GRANT_REVOKED
+					: ApplicationErrorEnum.NOT_ALLOWED;
+			throw new ApplicationError(grantError, {
 				message: "Document governance denied workspace access",
 				details: { documentId, reasonCode: viewDecision.reasonCode },
 			});

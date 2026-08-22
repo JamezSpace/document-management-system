@@ -8,6 +8,7 @@ interface ResolvedDocumentGovernanceContext {
 	isAuthenticatedInternalStaff: boolean;
 	hasRequiredClearance: boolean;
 	hasActiveGuestReaderGrant: boolean;
+	guestReaderGrantStatus?: "active" | "expired" | "revoked" | null;
 	hasEffectiveUnitHeadSignature: boolean;
 	exportGrant: Exclude<DocumentGovernanceFacts["exportGrant"], undefined>;
 }

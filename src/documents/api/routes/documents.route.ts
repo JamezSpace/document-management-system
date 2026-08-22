@@ -18,6 +18,8 @@ import type { DocumentGovernancePolicyPort } from "../../../shared/application/p
 import { routePolicies } from "../../../security/application/type/authorization.type.js";
 import { DocumentCapabilities } from "../../domain/enum/documentCapabilities.enum.js";
 import { Type, type Static } from "@sinclair/typebox";
+import ApplicationError from "../../../shared/errors/ApplicationError.error.js";
+import { ApplicationErrorEnum } from "../../../shared/errors/enum/application.enum.js";
 
 const attachmentBodySchema = Type.Object({
 	mediaId: Type.String({ minLength: 1 }),
@@ -31,6 +33,7 @@ type AttachmentParams = Static<typeof attachmentParamsSchema>;
 const discoveryQuerySchema = Type.Object({
 	query: Type.String({ minLength: 1, maxLength: 200 }),
 	limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 25 })),
+	cursor: Type.Optional(Type.String({ minLength: 1 })),
 }, { additionalProperties: false });
 const governanceGrantSchema = Type.Object({
 	granteeStaffId: Type.String({ minLength: 1 }),
@@ -55,6 +58,31 @@ type GovernanceGrantBody = Static<typeof governanceGrantSchema>;
 type GrantParams = Static<typeof grantParamsSchema>;
 type ReasonBody = Static<typeof reasonSchema>;
 type SensitivityRequestParams = Static<typeof sensitivityRequestParamsSchema>;
+const mutationHeadersSchema = Type.Object({
+	"if-match": Type.String({ minLength: 1 }),
+}, { additionalProperties: true });
+const pagedQuerySchema = Type.Object({
+	limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 25 })),
+	cursor: Type.Optional(Type.String({ minLength: 1 })),
+}, { additionalProperties: false });
+const extractionParamsSchema = Type.Object({
+	docId: Type.String({ minLength: 1 }),
+	action: Type.Union([Type.Literal("export"), Type.Literal("print")]),
+});
+type MutationHeaders = Static<typeof mutationHeadersSchema>;
+type PagedQuery = Static<typeof pagedQuerySchema>;
+type ExtractionParams = Static<typeof extractionParamsSchema>;
+
+function expectedRevision(headers: MutationHeaders) {
+	const normalized = headers["if-match"].trim().replace(/^W\//, "").replace(/^"|"$/g, "");
+	const revision = Number(normalized);
+	if (!Number.isSafeInteger(revision) || revision < 1) {
+		throw new ApplicationError(ApplicationErrorEnum.INCOMPLETE_REQUEST, {
+			message: "If-Match must contain a positive document revision",
+		});
+	}
+	return revision;
+}
 
 async function documentRoutes(
 	fastify: FastifyInstance,
@@ -84,8 +112,23 @@ async function documentRoutes(
 				request.query.query,
 				request.actor!.staffId,
 				request.query.limit,
+				request.query.cursor,
 			);
 			return reply.code(200).send({ success: true, data: results });
+		},
+	);
+
+	fastify.get(
+		"/governance/sensitivity-changes",
+		{
+			config: { authorization: routePolicies.capability(DocumentCapabilities.APPROVE) },
+			schema: { querystring: pagedQuerySchema },
+		},
+		async (request: FastifyRequest<{ Querystring: PagedQuery }>, reply: FastifyReply) => {
+			const queue = await documentController.sensitivityApprovalQueue(
+				request.actor!.staffId, request.query.limit, request.query.cursor,
+			);
+			return reply.code(200).send({ success: true, data: queue });
 		},
 	);
 
@@ -112,7 +155,7 @@ async function documentRoutes(
 			const newDocument =
 				await documentController.createDocument(payload, actorStaffId);
 
-			return reply.code(201).send({
+			return reply.header("ETag", `\"${newDocument.revision}\"`).code(201).send({
 				success: true,
 				data: newDocument,
 			});
@@ -123,18 +166,19 @@ async function documentRoutes(
 		"/:docId/attachments",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: documentIdSchema, body: attachmentBodySchema },
+			schema: { params: documentIdSchema, body: attachmentBodySchema, headers: mutationHeadersSchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: AttachmentBody }>,
+			request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: AttachmentBody; Headers: MutationHeaders }>,
 			reply: FastifyReply,
 		) => {
 			const attachments = await documentController.attachMedia(
 				request.params.docId,
 				request.body.mediaId,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
-			return reply.code(201).send({ success: true, data: attachments });
+			return reply.header("ETag", `\"${attachments.documentRevision}\"`).code(201).send({ success: true, data: attachments });
 		},
 	);
 
@@ -160,17 +204,18 @@ async function documentRoutes(
 		"/:docId/unit-head-signature",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: documentIdSchema },
+			schema: { params: documentIdSchema, headers: mutationHeadersSchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
+			request: FastifyRequest<{ Params: DocumentIdSchemaType; Headers: MutationHeaders }>,
 			reply: FastifyReply,
 		) => {
 			const signature = await documentController.signAsEffectiveUnitHead(
 				request.params.docId,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
-			return reply.code(201).send({ success: true, data: signature });
+			return reply.header("ETag", `\"${signature.documentRevision}\"`).code(201).send({ success: true, data: signature });
 		},
 	);
 
@@ -178,13 +223,25 @@ async function documentRoutes(
 		"/:docId/governance/grants",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: documentIdSchema, body: governanceGrantSchema },
+			schema: { params: documentIdSchema, body: governanceGrantSchema, headers: mutationHeadersSchema },
 		},
-		async (request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: GovernanceGrantBody }>, reply: FastifyReply) => {
+		async (request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: GovernanceGrantBody; Headers: MutationHeaders }>, reply: FastifyReply) => {
 			const grant = await documentController.createGovernanceGrant(
-				request.params.docId, request.body, request.actor!.staffId,
+				request.params.docId, request.body, request.actor!.staffId, expectedRevision(request.headers),
 			);
-			return reply.code(201).send({ success: true, data: grant });
+			return reply.header("ETag", `\"${grant.documentRevision}\"`).code(201).send({ success: true, data: grant });
+		},
+	);
+
+	fastify.get(
+		"/:docId/governance/grants",
+		{
+			config: { authorization: routePolicies.capability(DocumentCapabilities.VIEW) },
+			schema: { params: documentIdSchema },
+		},
+		async (request: FastifyRequest<{ Params: DocumentIdSchemaType }>, reply: FastifyReply) => {
+			const grants = await documentController.listGovernanceGrants(request.params.docId, request.actor!.staffId);
+			return reply.code(200).send({ success: true, data: grants });
 		},
 	);
 
@@ -192,13 +249,13 @@ async function documentRoutes(
 		"/:docId/governance/grants/:grantId",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: grantParamsSchema, body: reasonSchema },
+			schema: { params: grantParamsSchema, body: reasonSchema, headers: mutationHeadersSchema },
 		},
-		async (request: FastifyRequest<{ Params: GrantParams; Body: ReasonBody }>, reply: FastifyReply) => {
+		async (request: FastifyRequest<{ Params: GrantParams; Body: ReasonBody; Headers: MutationHeaders }>, reply: FastifyReply) => {
 			const result = await documentController.revokeGovernanceGrant(
-				request.params.docId, request.params.grantId, request.body.reason, request.actor!.staffId,
+				request.params.docId, request.params.grantId, request.body.reason, request.actor!.staffId, expectedRevision(request.headers),
 			);
-			return reply.code(200).send({ success: true, data: result });
+			return reply.header("ETag", `\"${result.documentRevision}\"`).code(200).send({ success: true, data: result });
 		},
 	);
 
@@ -206,13 +263,25 @@ async function documentRoutes(
 		"/:docId/governance/sensitivity-changes",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: documentIdSchema, body: sensitivityChangeSchema },
+			schema: { params: documentIdSchema, body: sensitivityChangeSchema, headers: mutationHeadersSchema },
 		},
-		async (request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: SensitivityChangeBody }>, reply: FastifyReply) => {
+		async (request: FastifyRequest<{ Params: DocumentIdSchemaType; Body: SensitivityChangeBody; Headers: MutationHeaders }>, reply: FastifyReply) => {
 			const result = await documentController.requestSensitivityChange(
-				request.params.docId, request.body.targetSensitivity, request.body.reason, request.actor!.staffId,
+				request.params.docId, request.body.targetSensitivity, request.body.reason, request.actor!.staffId, expectedRevision(request.headers),
 			);
-			return reply.code(result.status === "applied" ? 200 : 202).send({ success: true, data: result });
+			return reply.header("ETag", `\"${result.documentRevision}\"`).code(result.status === "applied" ? 200 : 202).send({ success: true, data: result });
+		},
+	);
+
+	fastify.get(
+		"/:docId/governance/sensitivity-changes",
+		{
+			config: { authorization: routePolicies.capability(DocumentCapabilities.VIEW) },
+			schema: { params: documentIdSchema },
+		},
+		async (request: FastifyRequest<{ Params: DocumentIdSchemaType }>, reply: FastifyReply) => {
+			const requests = await documentController.listSensitivityChanges(request.params.docId, request.actor!.staffId);
+			return reply.code(200).send({ success: true, data: requests });
 		},
 	);
 
@@ -220,13 +289,13 @@ async function documentRoutes(
 		"/:docId/governance/sensitivity-changes/:requestId/approve",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.APPROVE) },
-			schema: { params: sensitivityRequestParamsSchema, body: reasonSchema },
+			schema: { params: sensitivityRequestParamsSchema, body: reasonSchema, headers: mutationHeadersSchema },
 		},
-		async (request: FastifyRequest<{ Params: SensitivityRequestParams; Body: ReasonBody }>, reply: FastifyReply) => {
+		async (request: FastifyRequest<{ Params: SensitivityRequestParams; Body: ReasonBody; Headers: MutationHeaders }>, reply: FastifyReply) => {
 			const result = await documentController.approveSensitivityChange(
-				request.params.docId, request.params.requestId, request.body.reason, request.actor!.staffId,
+				request.params.docId, request.params.requestId, request.body.reason, request.actor!.staffId, expectedRevision(request.headers),
 			);
-			return reply.code(200).send({ success: true, data: result });
+			return reply.header("ETag", `\"${result.documentRevision}\"`).code(200).send({ success: true, data: result });
 		},
 	);
 
@@ -234,13 +303,13 @@ async function documentRoutes(
 		"/:docId/governance/sensitivity-changes/:requestId/reject",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.APPROVE) },
-			schema: { params: sensitivityRequestParamsSchema, body: reasonSchema },
+			schema: { params: sensitivityRequestParamsSchema, body: reasonSchema, headers: mutationHeadersSchema },
 		},
-		async (request: FastifyRequest<{ Params: SensitivityRequestParams; Body: ReasonBody }>, reply: FastifyReply) => {
+		async (request: FastifyRequest<{ Params: SensitivityRequestParams; Body: ReasonBody; Headers: MutationHeaders }>, reply: FastifyReply) => {
 			const result = await documentController.rejectSensitivityChange(
-				request.params.docId, request.params.requestId, request.body.reason, request.actor!.staffId,
+				request.params.docId, request.params.requestId, request.body.reason, request.actor!.staffId, expectedRevision(request.headers),
 			);
-			return reply.code(200).send({ success: true, data: result });
+			return reply.header("ETag", `\"${result.documentRevision}\"`).code(200).send({ success: true, data: result });
 		},
 	);
 
@@ -248,18 +317,41 @@ async function documentRoutes(
 		"/:docId/attachments/:mediaId",
 		{
 			config: { authorization: routePolicies.capability(DocumentCapabilities.UPDATE) },
-			schema: { params: attachmentParamsSchema },
+			schema: { params: attachmentParamsSchema, headers: mutationHeadersSchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: AttachmentParams }>,
+			request: FastifyRequest<{ Params: AttachmentParams; Headers: MutationHeaders }>,
 			reply: FastifyReply,
 		) => {
 			const removed = await documentController.removeAttachment(
 				request.params.docId,
 				request.params.mediaId,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
-			return reply.code(200).send({ success: true, data: { removed } });
+			if (removed && typeof removed === "object") reply.header("ETag", `\"${removed.documentRevision}\"`);
+			return reply.code(200).send({ success: true, data: removed });
+		},
+	);
+
+	fastify.post(
+		"/:docId/extractions/:action",
+		{
+			config: { authorization: routePolicies.capability(DocumentCapabilities.VIEW) },
+			schema: { params: extractionParamsSchema, headers: mutationHeadersSchema },
+		},
+		async (request: FastifyRequest<{ Params: ExtractionParams; Headers: MutationHeaders }>, reply: FastifyReply) => {
+			const extraction = await documentController.renderExtraction(
+				request.params.docId, request.actor!.staffId, request.params.action, expectedRevision(request.headers),
+			);
+			return reply
+				.header("Content-Type", extraction.contentType)
+				.header("Content-Disposition", `${extraction.disposition}; filename=\"${extraction.fileName}\"`)
+				.header("ETag", `\"${extraction.documentRevision}\"`)
+				.header("X-Artifact-SHA256", extraction.artifactSha256)
+				.header("X-Governance-Policy", `${extraction.policyId};version=${extraction.policyVersion}`)
+				.header("X-Governance-Obligations", extraction.obligations.join(","))
+				.send(extraction.artifact);
 		},
 	);
 
@@ -318,7 +410,7 @@ async function documentRoutes(
 					message: `Document with id: ${docId} doesn't exist`,
 				});
 
-			return reply.code(200).send({
+			return reply.header("ETag", `\"${doc.revision}\"`).code(200).send({
 				success: true,
 				data: doc,
 			});
@@ -332,12 +424,13 @@ async function documentRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.UPDATE),
 			},
-			schema: { params: documentIdSchema, body: documentSchemaForSave },
+			schema: { params: documentIdSchema, body: documentSchemaForSave, headers: mutationHeadersSchema },
 		},
 		async (
 			request: FastifyRequest<{
 				Params: DocumentIdSchemaType;
 				Body: DocumentSchemaForSaveType;
+				Headers: MutationHeaders;
 			}>,
 			reply: FastifyReply,
 		) => {
@@ -349,6 +442,7 @@ async function documentRoutes(
 				docId,
 				contentDelta,
 				actorStaffId,
+				expectedRevision(request.headers),
 			);
 
 			if (!savedDoc)
@@ -356,7 +450,7 @@ async function documentRoutes(
 					message: `Document with id: ${docId} doesn't exist`,
 				});
 
-			return reply.status(200).send({
+			return reply.header("ETag", `\"${savedDoc.revision}\"`).status(200).send({
 				success: true,
 				data: savedDoc,
 			});
@@ -370,15 +464,17 @@ async function documentRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.UPDATE),
 			},
-			schema: {
+				schema: {
 				params: documentIdSchema,
 				body: saveDocumentContentCommandSchema,
+				headers: mutationHeadersSchema,
 			},
 		},
 		async (
 			request: FastifyRequest<{
 				Params: DocumentIdSchemaType;
 				Body: SaveDocumentContentCommandType;
+				Headers: MutationHeaders;
 			}>,
 			reply: FastifyReply,
 		) => {
@@ -386,6 +482,7 @@ async function documentRoutes(
 				request.params.docId,
 				request.body.contentDelta,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
 
 			if (!savedDocument)
@@ -393,7 +490,7 @@ async function documentRoutes(
 					message: `Document with id: ${request.params.docId} doesn't exist`,
 				});
 
-			return reply.code(200).send({ success: true, data: savedDocument });
+			return reply.header("ETag", `\"${savedDocument.revision}\"`).code(200).send({ success: true, data: savedDocument });
 		},
 	);
 
@@ -404,15 +501,16 @@ async function documentRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.SUBMIT),
 			},
-			schema: { params: documentIdSchema },
+			schema: { params: documentIdSchema, headers: mutationHeadersSchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
+			request: FastifyRequest<{ Params: DocumentIdSchemaType; Headers: MutationHeaders }>,
 			reply: FastifyReply,
 		) => {
 			const submittedDocument = await documentController.submitDocumentById(
 				request.params.docId,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
 
 			if (!submittedDocument)
@@ -420,7 +518,7 @@ async function documentRoutes(
 					message: `Document with id: ${request.params.docId} doesn't exist`,
 				});
 
-			return reply.code(200).send({
+			return reply.header("ETag", `\"${submittedDocument.revision}\"`).code(200).send({
 				success: true,
 				data: submittedDocument,
 			});
@@ -434,10 +532,10 @@ async function documentRoutes(
 			config: {
 				authorization: routePolicies.capability(DocumentCapabilities.DELETE),
 			},
-			schema: { params: documentIdSchema },
+			schema: { params: documentIdSchema, headers: mutationHeadersSchema },
 		},
 		async (
-			request: FastifyRequest<{ Params: DocumentIdSchemaType }>,
+			request: FastifyRequest<{ Params: DocumentIdSchemaType; Headers: MutationHeaders }>,
 			reply: FastifyReply,
 		) => {
 			const { docId } = request.params;
@@ -445,6 +543,7 @@ async function documentRoutes(
 			const deletedDoc = await documentController.deleteDocument(
 				docId,
 				request.actor!.staffId,
+				expectedRevision(request.headers),
 			);
 
 			return reply.code(200).send({

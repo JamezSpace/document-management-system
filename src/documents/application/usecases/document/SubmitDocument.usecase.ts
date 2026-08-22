@@ -21,7 +21,7 @@ class DocumentSubmissionUseCase {
 		private readonly transactionManager: TransactionManager,
 	) {}
 
-	async submitDocument(actorId: string, document: Document) {
+	async submitDocument(actorId: string, document: Document, expectedRevision: number) {
 		if (document.ownerId !== actorId) {
 			throw new ApplicationError(ApplicationErrorEnum.NOT_ALLOWED, {
 				message: "Only the document author may submit the document",
@@ -69,10 +69,15 @@ class DocumentSubmissionUseCase {
                 const docAddressees = document.addressees;
 				const submittedDocument = await this.documentRepo.editDocument(
 					document,
+					expectedRevision,
 					transactionInstance,
-				);                
+				);
+				if (!submittedDocument) throw new ApplicationError(ApplicationErrorEnum.STALE_GOVERNANCE_DECISION, {
+					message: "Document revision changed before submission",
+					details: { documentId: document.id, expectedRevision },
+				});
 
-                return submittedDocument && {
+                return {
                     ...submittedDocument,
                     addressees: docAddressees
                 };
