@@ -7,11 +7,11 @@ import type { AuthServicePort } from "../../src/i & a/identity/application/ports
 import {
 	registerAuthorizationHooks,
 } from "../../src/security/api/authorization.hooks.js";
-import type { ActorContextRepositoryPort } from "../../src/security/application/ActorContextRepository.port.js";
+import type { ActorContextRepositoryPort } from "../../src/security/application/port/ActorContextRepository.port.js";
 import {
 	routePolicies,
 	type ActorResolution,
-} from "../../src/security/application/authorization.types.js";
+} from "../../src/security/application/type/authorization.type.js";
 import NexusError from "../../src/shared/errors/NexusError.js";
 
 class FakeAuthService implements AuthServicePort {
@@ -119,6 +119,19 @@ test("OPTIONS routes are exempt from the application policy assertion", async (t
 	await app.ready();
 
 	assert.equal(app.hasRoute({ method: "OPTIONS", url: "/preflight" }), true);
+	assert.deepEqual(authService.verifiedTokens, []);
+	assert.deepEqual(actorRepository.requestedAuthProviderIds, []);
+});
+
+test("unknown routes retain Fastify's not-found response", async (t) => {
+	const authService = new FakeAuthService();
+	const actorRepository = new FakeActorRepository(null);
+	const app = authorizationTestApp(authService, actorRepository);
+	t.after(() => app.close());
+
+	const response = await app.inject({ method: "GET", url: "/missing" });
+
+	assert.equal(response.statusCode, 404);
 	assert.deepEqual(authService.verifiedTokens, []);
 	assert.deepEqual(actorRepository.requestedAuthProviderIds, []);
 });

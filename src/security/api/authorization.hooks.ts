@@ -39,7 +39,12 @@ function registerAuthorizationHooks(
 	fastify.addHook("onRoute", assertRouteHasAuthorizationPolicy);
 	fastify.addHook("preHandler", async (request) => {
 		const policy = request.routeOptions.config
-			.authorization as RouteAuthorizationPolicy;
+			.authorization as RouteAuthorizationPolicy | undefined;
+
+		// Fastify's generated not-found route does not pass through `onRoute`, so it
+		// cannot carry an application authorization policy. Leave it untouched and
+		// allow Fastify to return the intended 404 response.
+		if (!policy) return;
 
 		if (policy.kind === "public") return;
 
