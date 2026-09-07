@@ -48,5 +48,5 @@ interface OrchestrationDocumentPort {
 	): Promise<Document | null>;
 }
 
-export type { OrchestrationDocumentPort, Document };
+export type { OrchestrationDocumentPort, OrchestrationDocumentVersion, Document };
 export { DocumentLifecycleState, DocumentCorrespondenceDirection };

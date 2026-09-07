@@ -1,10 +1,10 @@
 import type { PostgresDb } from "@fastify/postgres";
-import type { ActorContextRepositoryPort } from "../application/ActorContextRepository.port.js";
+import type { ActorContextRepositoryPort } from "../application/port/ActorContextRepository.port.js";
 import type {
 	ActorGrant,
 	ActorResolution,
 	AuthorizationScope,
-} from "../application/authorization.types.js";
+} from "../application/type/authorization.type.js";
 
 interface ActorRow {
 	identity_id: string;

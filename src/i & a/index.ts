@@ -305,10 +305,7 @@ export default async function IdentityAccessSubsystem(
 
 	// controller Layer
 	const authenticationController = new AuthenticationController(
-        onboardInviteUseCase,
-		authenticateUserUseCase,
-		addNewUserUseCase,
-		activatePendingUserUseCase,
+		onboardInviteUseCase,
 		getAllUsersUseCase,
 	);
 

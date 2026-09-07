@@ -1,7 +1,7 @@
 import ApplicationError from "../../shared/errors/ApplicationError.error.js";
 import { ApplicationErrorEnum } from "../../shared/errors/enum/application.enum.js";
-import AuthorizationService from "../../security/application/AuthorizationService.js";
-import type { ActorContext } from "../../security/application/authorization.types.js";
+import AuthorizationService from "../../security/application/services/AuthorizationService.js";
+import type { ActorContext } from "../../security/application/type/authorization.type.js";
 import type { DigitizationJob, RegistryEntry, RegistryIntake } from "../domain/registry.models.js";
 import { RegistryCapabilities } from "../domain/enum/registryCapabilities.enum.js";
 
