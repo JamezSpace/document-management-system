@@ -29,6 +29,7 @@ import InMemoryEventBusAdapter from "./shared/infrastructure/InMemoryEventBus.js
 import { dbConfig } from "./shared/infrastructure/persistence/primary/postgres.config.js";
 import WorkflowSubsystem from "./workflow/index.js";
 import DocumentGovernanceAuditAdapter from "./audit/infrastructure/persistence/DocumentGovernanceAudit.adapter.js";
+import WorkManagementSubsystem from "./work-management/index.js";
 
 interface BuildAppOptions {
 	logger?: boolean;
@@ -123,6 +124,7 @@ function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 			accessWorkflowAdapter,
 			globalEventBus: eventBusAdapter,
 		});
+		server.register(WorkManagementSubsystem, { prefix: "/api/work-items" });
 		server.register(DispatchSubsystem, {
 			globalEventBus: eventBusAdapter,
 			dispatchStaffAdapter,
